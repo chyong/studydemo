@@ -1,0 +1,11 @@
+/logs/
+/.classpath
+/.project
+/.settings/
+/build/
+/WebContent/
+*.iml
+.idea
+/target/
+../logs/
+../logs
