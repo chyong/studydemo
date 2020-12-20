@@ -10,11 +10,18 @@ public class SingleLinkedListDemo {
         HeroNode hero5 = new HeroNode(3, "小吴用", "智多星*&*……*");
 
         SingleLinkedList singleLinkedList = new SingleLinkedList();
-        singleLinkedList.addHeroByOrder(hero4);
-        singleLinkedList.addHeroByOrder(hero3);
-        singleLinkedList.addHeroByOrder(hero1);
-        singleLinkedList.addHeroByOrder(hero2);
-        singleLinkedList.deleteHero(hero5);
+        singleLinkedList.addHero(hero4);
+        singleLinkedList.addHero(hero3);
+        singleLinkedList.addHero(hero1);
+        singleLinkedList.addHero(hero2);
+//        singleLinkedList.deleteHero(hero5);
+        singleLinkedList.showHero();
+        System.out.println(singleLinkedList.getHeroNum());
+//        System.out.println(singleLinkedList.getLastHero(3));
+        singleLinkedList.reverseHero_1();
+        singleLinkedList.showHero();
+        System.out.println(singleLinkedList.getHeroNum());
+        singleLinkedList.reverseHero_2();
         singleLinkedList.showHero();
     }
 
@@ -57,7 +64,7 @@ class SingleLinkedList {
             if (temp.next.no == node.no) {
                 temp.next.nikName = node.nikName;
                 temp.next.name = node.name;
-               break;
+                break;
             }
             temp = temp.next;
         }
@@ -82,6 +89,47 @@ class SingleLinkedList {
         }
     }
 
+    public int getHeroNum() {
+        HeroNode temp = head;
+        int i = 0;
+        while (temp.next != null) {
+            i++;
+            temp = temp.next;
+        }
+        return i;
+    }
+
+    public HeroNode getLastHero(int a) {
+        HeroNode temp = head;
+        for (int i = 0; i <= getHeroNum() - a; i++) {
+            temp = temp.next;
+        }
+        return temp;
+    }
+
+    public void reverseHero_1() {
+        HeroNode temp = head;
+        HeroNode reserveHead = null;
+        while (temp.next != null) {
+            reserveHead = new HeroNode(temp.next.no, temp.next.name, temp.next.nikName, reserveHead);
+            temp = temp.next;
+        }
+        head.next = reserveHead;
+    }
+
+    public void reverseHero_2() {
+        HeroNode temp = head;
+        HeroNode next;
+        HeroNode reserveHead = new HeroNode(0, "", "");
+        while (temp.next != null) {
+            next = temp.next.next;
+            temp.next.next = reserveHead.next;
+            reserveHead.next = temp.next;
+            temp.next = next;
+        }
+        head.next = reserveHead.next;
+    }
+
 }
 
 class HeroNode {
@@ -94,6 +142,13 @@ class HeroNode {
         this.name = name;
         this.nikName = nikName;
         this.no = no;
+    }
+
+    public HeroNode(int no, String name, String nikName, HeroNode next) {
+        this.name = name;
+        this.nikName = nikName;
+        this.no = no;
+        this.next = next;
     }
 
     @Override
