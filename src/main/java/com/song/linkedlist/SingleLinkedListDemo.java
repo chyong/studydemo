@@ -1,5 +1,7 @@
 package com.song.linkedlist;
 
+import java.util.Stack;
+
 public class SingleLinkedListDemo {
 
     public static void main(String[] args) {
@@ -10,10 +12,10 @@ public class SingleLinkedListDemo {
         HeroNode hero5 = new HeroNode(3, "小吴用", "智多星*&*……*");
 
         SingleLinkedList singleLinkedList = new SingleLinkedList();
-        singleLinkedList.addHero(hero4);
-        singleLinkedList.addHero(hero3);
-        singleLinkedList.addHero(hero1);
-        singleLinkedList.addHero(hero2);
+        singleLinkedList.addHeroByOrder(hero4);
+        singleLinkedList.addHeroByOrder(hero3);
+        singleLinkedList.addHeroByOrder(hero1);
+        singleLinkedList.addHeroByOrder(hero2);
 //        singleLinkedList.deleteHero(hero5);
         singleLinkedList.showHero();
         System.out.println(singleLinkedList.getHeroNum());
@@ -23,6 +25,8 @@ public class SingleLinkedListDemo {
         System.out.println(singleLinkedList.getHeroNum());
         singleLinkedList.reverseHero_2();
         singleLinkedList.showHero();
+        System.out.println(singleLinkedList.getHeroNum());
+        singleLinkedList.reversePrint();
     }
 
 }
@@ -128,6 +132,18 @@ class SingleLinkedList {
             temp.next = next;
         }
         head.next = reserveHead.next;
+    }
+
+    public void reversePrint() {
+        HeroNode temp = head;
+        Stack<HeroNode> stack = new Stack<>();
+        while (temp.next != null) {
+            stack.add(temp.next);
+            temp = temp.next;
+        }
+        while (stack.size() > 0) {
+            System.out.println(stack.pop());
+        }
     }
 
 }
