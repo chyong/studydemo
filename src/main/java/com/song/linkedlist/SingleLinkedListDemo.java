@@ -180,13 +180,9 @@ class DoubleLinkedList {
         if(temp.next!=null){
             node.next = temp.next;
             temp.next.pre = node;
-            temp.next = node;
-            node.pre = temp;
-        }else{
-            node.next = temp.next;
-            temp.next = node;
-            node.pre = temp;
         }
+        temp.next = node;
+        node.pre = temp;
     }
 
     public void updateHero(HeroNode2 node) {
