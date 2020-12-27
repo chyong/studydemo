@@ -177,10 +177,12 @@ class DoubleLinkedList {
             }
             temp = temp.next;
         }
-        node.pre = temp.pre;
-        node.next = temp.next;
+        if(temp.next!=null){
+            node.next = temp.next;
+            temp.next.pre = node;
+        }
         temp.next = node;
-        temp.pre =node.next;
+        node.pre = temp;
     }
 
     public void updateHero(HeroNode2 node) {
