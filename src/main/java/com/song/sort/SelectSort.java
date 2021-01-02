@@ -7,8 +7,8 @@ public class SelectSort {
     public static void main(String[] args) {
 //        int[] array = {101, 34, 119, 1, -1, 90, 123};
         //创建80000个随机数的数组
-        int[] array = new int[80000];
-        for (int i = 0; i < 80000; i++) {
+        int[] array = new int[8000];
+        for (int i = 0; i < 8000; i++) {
             array[i] = (int) (Math.random() * 8000000);
         }
         System.out.println("排序前：");
