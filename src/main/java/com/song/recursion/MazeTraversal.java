@@ -39,7 +39,7 @@ public class MazeTraversal {
 
     public static boolean setWay(int[][] map, int i, int j) {
         if (map[6][6] == 2) {
-            //已经找到终点
+            //已经找到终点停止
             return true;
         } else {
             if (map[i][j] == 0) {
