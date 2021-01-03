@@ -4,10 +4,10 @@ import java.util.Arrays;
 
 public class InsertSort {
     public static void main(String[] args) {
-//        int[] array = {101, 34, 119, 1, -1, 90, 123};
+//      int[] array = {101, 34, 119, 1, -1, 90, 123};
         //创建80000个随机数的数组
-        int[] array = new int[8000];
-        for (int i = 0; i < 8000; i++) {
+        int[] array = new int[80000];
+        for (int i = 0; i < 80000; i++) {
             array[i] = (int) (Math.random() * 8000000);
         }
         System.out.println("排序前：");
@@ -25,7 +25,7 @@ public class InsertSort {
         //取第二个元素
 //        int insertValue = array[1];
 //        int insertIndex = 1 - 1;
-//        while (insertIndex >= 0 && array[insertIndex + 1] < array[insertIndex]) {
+//        while (insertIndex >= 0 && insertValue < array[insertIndex]) {
 //            array[insertIndex + 1] = array[insertIndex];
 //            insertIndex--;
 //        }
