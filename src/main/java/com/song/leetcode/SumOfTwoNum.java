@@ -2,8 +2,11 @@ package com.song.leetcode;
 
 import java.util.Arrays;
 
+/**
+ * 两数之和
+ */
 public class SumOfTwoNum {
-    public static void main (String[] args){
+    public static void main(String[] args) {
         System.out.println(Arrays.toString(twoSum(new int[]{1, 3, 3, 4}, 6)));
     }
 

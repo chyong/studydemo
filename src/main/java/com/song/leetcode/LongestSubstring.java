@@ -1,5 +1,8 @@
 package com.song.leetcode;
 
+/**
+ * 最长回文子串
+ */
 public class LongestSubstring {
 
     public static void main(String[] args) {

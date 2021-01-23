@@ -2,9 +2,12 @@ package com.song.leetcode;
 
 import java.util.Arrays;
 
+/**
+ * 有效的字母异位词
+ */
 public class ValidAlphaWord {
-    public static void main (String[] args){
-        System.out.println(isAnagram("anagram","nagaram"));
+    public static void main(String[] args) {
+        System.out.println(isAnagram("anagram", "nagaram"));
     }
 
     public static boolean isAnagram(String s, String t) {
@@ -17,8 +20,7 @@ public class ValidAlphaWord {
         Arrays.sort(chars1);
         Arrays.sort(chars2);
 
-        for (int i = 0; i < chars1.length; i++)
-        {
+        for (int i = 0; i < chars1.length; i++) {
             if (chars1[i] != chars2[i])
                 return false;
         }

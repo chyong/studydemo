@@ -5,6 +5,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * 无重复字符的最长子串
+ */
 public class WithoutRepeatingStr {
 
     public static void main(String[] args) {
@@ -32,14 +35,14 @@ public class WithoutRepeatingStr {
         int res = 0, start = 0;
         Set<Character> occ = new HashSet<>();
         for (int i = 0; i < n; i++) {
-            if(i != 0){
+            if (i != 0) {
                 occ.remove(s.charAt(i - 1));
             }
-            while (start < n && !occ.contains(s.charAt(start))){
+            while (start < n && !occ.contains(s.charAt(start))) {
                 occ.add(s.charAt(start));
                 start++;
             }
-            res = Math.max(res, start-i);
+            res = Math.max(res, start - i);
         }
         return res;
     }

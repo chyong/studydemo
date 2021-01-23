@@ -1,5 +1,8 @@
 package com.song.leetcode;
 
+/**
+ * 寻找两个正序数组的中位数
+ */
 public class FindMedianSortedArrays {
 
     public static void main(String[] args) {
@@ -58,7 +61,7 @@ public class FindMedianSortedArrays {
         }
         // 判断合成后的数组的长度，求出中位数。返回的是double类型
         if ((len1 + len2) % 2 == 1) {
-            return (double) res[(len1 + len2) / 2];
+            return res[(len1 + len2) / 2];
         } else {
             return (double) (res[(len1 + len2) / 2] + res[(len1 + len2) / 2 - 1]) / 2;
         }
