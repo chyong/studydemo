@@ -1,7 +1,7 @@
 package com.song.leetcode;
 
 /**
- * 寻找两个正序数组的中位数
+ * 4.寻找两个正序数组的中位数
  */
 public class FindMedianSortedArrays {
 

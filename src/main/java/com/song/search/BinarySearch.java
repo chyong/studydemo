@@ -8,7 +8,7 @@ public class BinarySearch {
     static int count = 0;
 
     public static void main(String[] args) {
-        //二分查找实现
+        //二分查找递归实现
 //        int[] array = new int[100];
 //        for (int i = 1; i < 101; i++) {
 //            array[i - 1] = i;

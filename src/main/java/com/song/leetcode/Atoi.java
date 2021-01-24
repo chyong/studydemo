@@ -1,7 +1,7 @@
 package com.song.leetcode;
 
 /**
- * 字符串转换整数
+ * 8.字符串转换整数
  */
 public class Atoi {
 

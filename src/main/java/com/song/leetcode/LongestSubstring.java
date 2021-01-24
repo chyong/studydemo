@@ -1,7 +1,7 @@
 package com.song.leetcode;
 
 /**
- * 最长回文子串
+ * 5.最长回文子串
  */
 public class LongestSubstring {
 

@@ -3,7 +3,7 @@ package com.song.leetcode;
 import java.util.Arrays;
 
 /**
- * 两数之和
+ * 1.两数之和
  */
 public class SumOfTwoNum {
     public static void main(String[] args) {

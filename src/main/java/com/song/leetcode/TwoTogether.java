@@ -1,7 +1,7 @@
 package com.song.leetcode;
 
 /**
- * 两数相加
+ * 2.两数相加
  */
 public class TwoTogether {
 

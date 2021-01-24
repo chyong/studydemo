@@ -3,7 +3,7 @@ package com.song.leetcode;
 import java.util.Arrays;
 
 /**
- * 有效的字母异位词
+ * 242.有效的字母异位词
  */
 public class ValidAlphaWord {
     public static void main(String[] args) {
