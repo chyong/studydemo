@@ -1,6 +1,32 @@
 1.netty:
 （1）IO模型：
     a.阻塞io模型：一个线程处理一个请求，如果数据未到达线程会一直阻塞直到数据到达。比较费服务器资源（占用线程较多），适合连接数目小且固定的架构，但程序简单易理解。
-    b.非阻塞io模型：一个线程处理一个请求，不需要等待数据到达，会立马返回数据到达结果，如果未到达会一直轮循（while循环方式）直到数据到达。while循环方式访问内核数据到达状态，不会释放cpu，cpu占用较高。、
-    c.多路复用io模型：一个线程管理多个socket（连接），该线程会一直轮循每个socket是否有读写事件，如果有
+    b.非阻塞io模型：一个线程处理一个请求，不需要等待数据到达，会立马返回数据到达结果，如果未到达会一直轮循（while循环方式）直到数据到达。while循环方式访问内核数据到达状态，不会释放cpu，cpu占用较高。
+    c.多路复用io模型：一个线程管理多个socket（连接），该线程会一直轮循（内核进行非用户线程）每个socket是否有读写事件，如果有才会调用实际的io读写操作。适合连接数比较多的情况，响应体较大，会导致后续的事件迟迟得不到处理。
 （2）NIO：
+    a.同步非阻塞IO模型，三大核心部分-channel（管道）、buffer（缓冲区）、selector（多路复用器），channel提供文件、网络读取数据的渠道，数据读写数据必须经由缓冲区，channel要注册到selector上，一个selector可以注册多个channel，
+      selector轮循检测注册在它上面的channel是否有读写事件发生，如果有则进行响应处理。
+    b.从JDK1.5开始，nio采用epoll基于事件响应机制进行了优化，epoll（selector的底层实现）是操作系统函数（native方法）
+      NioSelectorServer中的几个重要方法：
+      Selector.open() //创建selector，底层调用epoll_create方法，创建epoll实例
+      socketChannel.register() //将socketChannel注册到selector上，底层先将fd（socketChannel）添加到内部集合中，然后调用epoll_ctl方法进行事件绑定
+      selector.select() //阻塞等待需要处理的事件发生，底层调用epoll_wait方法阻塞等待事件发生，然后进行响应处理
+    c.epoll函数：int epoll_create(int size);  int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);  int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout);
+（3）Netty线程模型：
+    a.netty抽象化出了两组线程池BossGroup和WorkerGroup，BossGroup专门负责接收客户端的连接，WorkerGroup专门负责网络的读写
+    b.BossGroup和WorkerGroup类型都是NioEventLoopGroup
+    c.NioEventLoopGroup相当于一个事件循环线程组，这个组中含有多个事件循环线程，每一个事件循环线程是NioEventLoop
+    d.每个NioEventLoop都有一个selector，用于监听注册在其上的socketChannel的网络通讯，NioEventLoop中维护了一个线程和任务队列，支持异步提交执行任务
+    e.每个Boss  NioEventLoop线程内部循环执行的步骤：
+      1.处理accept事件，与client建立连接，生成NioSocketChannel
+      2.将NioSocketChannel注册到某个worker  NIOEventLoop上的selector
+      3.处理任务队列的任务，即runAllTasks
+    f.每个worker  NioEventLoop线程循环执行的步骤：
+      1.轮询注册到自己selector上的所有NioSocketChannel的read，write事件
+      2.处理I/O事件，即read，write 事件，在对应NioSocketChannel处理业务
+      3.runAllTasks处理任务队列TaskQueue的任务，一些耗时的业务处理一般可以放入TaskQueue中慢慢处理，这样不影响数据在pipeline中的流动处理
+    g.每个worker NIOEventLoop处理NioSocketChannel业务时，会使用 pipeline (管道)，管道中维护了很多ChannelHandler处理器用来处理channel中的数据
+      一个Channel包含了一个ChannelPipeline，而ChannelPipeline中又维护了一个由ChannelHandlerContext组成的双向链表，并且每个ChannelHandlerContext中又关联着一个ChannelHandler
+    h.ByteBuf:从结构上来说，ByteBuf由一串字节数组构成。数组中每个字节用来存放信息。ByteBuf提供了两个索引，一个用于读取数据，一个用于写入数据。这两个索引通过在字节数组中移动，来定位需要读或者写信息的位置。
+              当从ByteBuf读取时，它的readerIndex（读索引）将会根据读取的字节数递增。同样，当写ByteBuf时，它的writerIndex也会根据写入的字节数进行递增。需要注意的是极限的情况是readerIndex刚好读到了writerIndex写入的地方。
+              如果readerIndex超过了writerIndex的时候，Netty会抛出IndexOutOf-BoundsException异常。
