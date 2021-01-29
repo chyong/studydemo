@@ -7,11 +7,12 @@ public class TwoTogether {
 
     public static void main(String[] args) {
         ListNode l1 = new ListNode(3);
-        ListNode l2 = new ListNode(4, l1);
-        ListNode l3 = new ListNode(2, l2);
-        ListNode l4 = new ListNode(4);
-        ListNode l5 = new ListNode(6, l4);
-        ListNode l6 = new ListNode(5, l5);
+        ListNode l2 = new ListNode(2, l1);
+        ListNode l3 = new ListNode(1, l2);
+
+        ListNode l4 = new ListNode(9);
+        ListNode l5 = new ListNode(8, l4);
+        ListNode l6 = new ListNode(7, l5);
         System.out.print(addTwoNumbers(l3, l6).val + " -> ");
         System.out.print(addTwoNumbers(l3, l6).next.val + " -> ");
         System.out.println(addTwoNumbers(l3, l6).next.next.val);
