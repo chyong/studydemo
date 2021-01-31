@@ -1,7 +1,5 @@
 package com.song.leetcode;
 
-import java.util.Arrays;
-
 /**
  * 28.实现 strStr()
  */
