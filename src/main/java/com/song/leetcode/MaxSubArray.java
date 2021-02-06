@@ -5,9 +5,10 @@ package com.song.leetcode;
  */
 public class MaxSubArray {
     public static void main(String[] args) {
-        System.out.println(maxSubArray(new int[]{-2, 1, -3, 4, -1, 2, 1, -5, 4}));
+        System.out.println(maxSubArray(new int[]{1,2}));
     }
 
+    //滑动窗口法，时间复杂度不满足题目要求
 //    public static int maxSubArray(int[] nums) {
 //        int n = nums.length;
 //        int sum = nums[0];
@@ -38,18 +39,41 @@ public class MaxSubArray {
      * @param nums
      * @return
      */
+//    public static int maxSubArray(int[] nums) {
+//        int res = nums[0];
+//        int sum = 0;
+//        for (int num : nums) {
+//            if (sum < 0) {
+//                sum = num;
+//            } else {
+//                sum = sum + num;
+//            }
+//            res = Math.max(res, sum);
+//        }
+//        return res;
+//    }
+
+
+    /**
+     * 动态规划
+     * 若前一个元素大于0，则将其加到当前元素上
+     *
+     * @param nums
+     * @return
+     */
     public static int maxSubArray(int[] nums) {
-        int ans = nums[0];
+        int res = nums[0];
         int sum = 0;
         for (int num : nums) {
             if (sum > 0) {
-                sum += num;
+                sum = sum + num;
             } else {
                 sum = num;
             }
-            ans = Math.max(ans, sum);
+            res = Math.max(res, sum);
         }
-        return ans;
+        return res;
     }
+
 
 }
