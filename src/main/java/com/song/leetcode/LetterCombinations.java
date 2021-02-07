@@ -10,21 +10,40 @@ import java.util.Map;
  */
 public class LetterCombinations {
     public static void main(String[] args) {
-        System.out.println(letterCombinations("23"));
+        System.out.println(letterCombinations("2"));
     }
 
     public static List<String> letterCombinations(String digits) {
-        List<String> list = new ArrayList<>();
-        Map<Character,Character[]> map = new HashMap<>();
-        map.put('2', new Character[]{'a','b','c'});
-        map.put('3', new Character[]{'d','e','f'});
-        map.put('4', new Character[]{'g','h','i'});
-        map.put('5', new Character[]{'j','k','l'});
-        map.put('6', new Character[]{'m','n','o'});
-        map.put('7', new Character[]{'p','q','r','s'});
-        map.put('8', new Character[]{'t','u','v'});
-        map.put('9', new Character[]{'w','x','y','z'});
+        List<String> combinations = new ArrayList<>();
+        if (digits.length() == 0) {
+            return combinations;
+        }
+        Map<Character, String> phoneMap = new HashMap<Character, String>() {{
+            put('2', "abc");
+            put('3', "def");
+            put('4', "ghi");
+            put('5', "jkl");
+            put('6', "mno");
+            put('7', "pqrs");
+            put('8', "tuv");
+            put('9', "wxyz");
+        }};
+        backtrack(combinations, phoneMap, digits, 0, new StringBuffer());
+        return combinations;
+    }
 
-        return list;
+    public static void backtrack(List<String> combinations, Map<Character, String> phoneMap, String digits, int index, StringBuffer combination) {
+        if (index == digits.length()) {
+            combinations.add(combination.toString());
+        } else {
+            char digit = digits.charAt(index);
+            String letters = phoneMap.get(digit);
+            int lettersCount = letters.length();
+            for (int i = 0; i < lettersCount; i++) {
+                combination.append(letters.charAt(i));
+                backtrack(combinations, phoneMap, digits, index + 1, combination);
+                combination.deleteCharAt(index);
+            }
+        }
     }
 }
