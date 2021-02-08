@@ -1,1 +1,14 @@
 1.类加载：
+  a.klass模型:
+    Java的每个类，在JVM中，都有⼀个对应的Klass类实例与之对应，存储类的元信息如：常量池、属性信息、⽅法信息等，类的元信息是存储在原空间的，普通的Java类在JVM中对应的是instanceKlass类的实例，它的三个⼦类
+        1. InstanceMirrorKlass：⽤于表示java.lang.Class，Java代码中获取到的Class对象，实际上就是这个C++类的实例，存储在堆区，学名镜像类。
+        2. InstanceRefKlass：⽤于表示java/lang/ref/Reference类的⼦类。
+        3. InstanceClassLoaderKlass：⽤于遍历某个加载器加载的类。
+    Java中的数组不是静态数据类型，是动态数据类型，即是运⾏期⽣成的，Java数组的元信息⽤ArrayKlass的⼦类来表示：
+        1. TypeArrayKlass：⽤于表示基本类型的数组。
+        2. ObjArrayKlass：⽤于表示引⽤类型的数组。
+  b.类加载的过程:
+    类加载机制分为五个部分：加载，验证，准备，解析，初始化
+        1.加载：加载是类加载过程中的一个阶段，这个阶段会在内存中生成一个代表这个类的java.lang.Class对象，作为方法区这个类的各种数据的入口。注意这里不一定非得要从一个Class文件获取，这里既
+               可以从ZIP包中读取（比如从jar包和war包中读取），也可以在运行时计算生成（动态代理），也可以由其它文件生成（比如将JSP文件转换成对应的Class类）。
+        2.验证码：

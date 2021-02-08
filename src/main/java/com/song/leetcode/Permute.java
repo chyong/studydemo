@@ -1,6 +1,7 @@
 package com.song.leetcode;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -26,12 +27,13 @@ public class Permute {
      * @param res
      */
     public static void dfs(int[] nums, List<Integer> tmp, List<List<Integer>> res) {
+        System.out.println(Arrays.toString(nums) + "," + tmp);
         if (tmp.size() == nums.length) {
             res.add(new ArrayList<>(tmp));
         } else {
-            for (int num : nums) {
-                if (!tmp.contains(num)) {
-                    tmp.add(num);
+            for (int i = 0; i < nums.length; i++) {
+                if (!tmp.contains(nums[i])) {
+                    tmp.add(nums[i]);
                     dfs(nums, tmp, res);
                     tmp.remove(tmp.size() - 1);
                 }
