@@ -10,7 +10,7 @@ import java.util.Map;
  */
 public class LetterCombinations {
     public static void main(String[] args) {
-        System.out.println(letterCombinations("2"));
+        System.out.println(letterCombinations("2345"));
     }
 
     public static List<String> letterCombinations(String digits) {
