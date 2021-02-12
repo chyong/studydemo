@@ -48,18 +48,43 @@
         7. 类加载器的特点：
                运行任何一个程序时，总是由Application Loader开始加载指定的类。一个类在收到加载类请求时，总是先交给其父类尝试加载。Bootstrap Loader是最顶级的类加载器，其父加载器为null。
         8. 类加载的三种方式：
-                1. 通过命令行启动应用时由JVM初始化加载含有main()方法的主类。
-                2. 通过Class.forName()方法动态加载，会默认执行初始化块（static{}），但是Class.forName(name,initialize,loader)中的initialze可指定是否要执行初始化块。
-                3. 通过ClassLoader.loadClass()方法动态加载，不会执行初始化块。
+               1. 通过命令行启动应用时由JVM初始化加载含有main()方法的主类。
+               2. 通过Class.forName()方法动态加载，会默认执行初始化块（static{}），但是Class.forName(name,initialize,loader)中的initialze可指定是否要执行初始化块。
+               3. 通过ClassLoader.loadClass()方法动态加载，不会执行初始化块。
         9. 打破双亲委派：
-                因为在某些情况下⽗类加载器需要委托⼦类加载器去加载class⽂件。受到加载范围的限制，⽗类加载器⽆法加载到需要的⽂件，以Driver接⼝为例，由于Driver接⼝定义在jdk当中的，⽽其实现由各个数据库的
-                服务商来提供，⽐如mysql的就写了MySQL Connector，那么问题就来了，DriverManager（也由jdk提供）要加载各个实现了Driver接⼝的实现类，然后进⾏管理，但是DriverManager由启动类加载器加载，只
-                能记载JAVA_HOME的lib下⽂件，⽽其实现是由服务商提供的，由系统类加载器加载，这个时候就需要启动类加载器来委托⼦类来加载Driver实现，从⽽破坏了双亲委派。
-                打破双亲委派的意思其实就是不委派、向下委派，例如：
-                1. ⾃定义类加载器，继承ClassLoader，重写loadClass()方法。
-                2. SPI：是⼀种服务发现机制。它通过在ClassPath路径下的META-INF/services⽂件夹查找⽂件，⾃动加载⽂件⾥所定义的类。这⼀机制为很多框架扩展提供了可能，⽐如在Dubbo、JDBC中都使⽤到了SPI机制。
+               因为在某些情况下⽗类加载器需要委托⼦类加载器去加载class⽂件。受到加载范围的限制，⽗类加载器⽆法加载到需要的⽂件，以Driver接⼝为例，由于Driver接⼝定义在jdk当中的，⽽其实现由各个数据库的
+               服务商来提供，⽐如mysql的就写了MySQL Connector，那么问题就来了，DriverManager（也由jdk提供）要加载各个实现了Driver接⼝的实现类，然后进⾏管理，但是DriverManager由启动类加载器加载，只
+               能记载JAVA_HOME的lib下⽂件，⽽其实现是由服务商提供的，由系统类加载器加载，这个时候就需要启动类加载器来委托⼦类来加载Driver实现，从⽽破坏了双亲委派。
+               打破双亲委派的意思其实就是不委派、向下委派，例如：
+               1. ⾃定义类加载器，继承ClassLoader，重写loadClass()方法。
+               2. SPI：是⼀种服务发现机制。它通过在ClassPath路径下的META-INF/services⽂件夹查找⽂件，⾃动加载⽂件⾥所定义的类。这⼀机制为很多框架扩展提供了可能，⽐如在Dubbo、JDBC中都使⽤到了SPI机制。
         10. 沙箱安全：
-                跟Linux的权限机制有点像，⽐如我定义了⼀个类名为String所在包为java.lang，因为这个类本来是属于jdk的，如果没有沙箱安全机制的话，这个类将会污染到我所有的String，但是由于沙箱安全机制，
-                所以就委托顶层的bootstrap加载器查找这个类，如果没有的话就委托extsion，extsion没有就到appclassloader，但是由于String就是jdk的源代码，所以在bootstrap那⾥就加载到了，先找到先使⽤，
-                所以就使⽤bootstrap⾥⾯的String，后⾯的⼀概不能使⽤，这就保证了不被恶意代码污染。
-  d. 字节码文件：
+               跟Linux的权限机制有点像，⽐如我定义了⼀个类名为String所在包为java.lang，因为这个类本来是属于jdk的，如果没有沙箱安全机制的话，这个类将会污染到我所有的String，但是由于沙箱安全机制，
+               所以就委托顶层的bootstrap加载器查找这个类，如果没有的话就委托extsion，extsion没有就到appclassloader，但是由于String就是jdk的源代码，所以在bootstrap那⾥就加载到了，先找到先使⽤，
+               所以就使⽤bootstrap⾥⾯的String，后⾯的⼀概不能使⽤，这就保证了不被恶意代码污染。
+  d. 字节码文件：即.class文件，是Java编译器编译Java源文件（.java）产生的，它是一种8位字节的二进制流文件，各个数据项按顺序紧密的从前向后排列，相邻的项之间没有间隙，这样可以使得class文件非常紧凑，
+               体积轻巧，可以被JVM快速的加载至内存，并且占据较少的内存空间（方便于网络的传输）。
+        1. 字节码文件的结构：
+               magic：魔数，class文件的标志，他是一个固定的值：0XCAFEBABE。如果开头四个字节不是0XCAFEBABE，那么就说明它不是class文件，不能被JVM识别，占4字节。
+               minor version 和 major version：次版本号和主版本号，高版本的JVM能识别低版本的javac编译器编译的class文件，而低版本的JVM不能识别高版本的javac编译器编译的class文件，各占2字节。
+               constant pool count：常量池数量，占2字节。
+               constant pool：存放编译器⽣成的各种字⾯量(Literal)和符号引⽤(Symbolic References)，字⾯量包括：1.⽂本字符串 2.⼋种基本类型的值 3.被声明为final的常量等;符号引⽤包括：1.类和⽅法的全限定名
+                              2.字段的名称和描述符 3.⽅法的名称和描述符。
+               access flag：当前类的访问权限，占2字节。
+               this cass：当前类的全局限定名在常量池里的索引（类名），占2字节。
+               super class：当前类的父类的全局限定名在常量池里的索引（父类名），占2字节。
+               interfaces count：当前类实现的接口数量，占2字节。
+               interfaces[]：包含interfaces count个接口的全局限定名（实现的接口名）的索引的数组。
+               fields count：类变量和实例变量的字段的数量总和（类成员的总个数），占2字节。
+               fields[]：包含字段详细信息的列表（类成员详情数组）。
+               methods count：该类或者接口显示定义的方法的数量，占2字节。
+               method[]：包含方法信息的一个详细列表。
+               attributes count：该类或者接口所定义的属性信息（attributes info）的数量，占2字节。
+               attributes[]：该类或者接口所定义的属性信息，属性可以出现在class文件的很多地方，而不只是出现在attributes列表里。如果是attributes表里的属性，那么它就是对整个class文件所对应的类或者接口的描述；
+                             如果出现在fields的某一项里，那么它就是对该字段额外信息的描述；如果出现在methods的某一项里，那么它就是对该方法额外信息的描述。
+  e. 内存池与JVM内存模型：
+
+
+
+
+
