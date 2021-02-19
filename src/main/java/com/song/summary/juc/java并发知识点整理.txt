@@ -174,9 +174,27 @@
         从RUNNABLE到TERMINATED状态：
             线程执行完run()方法后，会自动转换到TERMINATED状态，当然如果执行run()方法的时候异常抛出，也会导致线程终止。有时需要强制中断run()方法的执行，可以调用Thread类里面的stop()方法，不过已经标记为@Deprecated，
             所以不建议使用，可以改为调用interrupt()方法。
-7.java锁体系：
-    a.自旋锁：
-8.synchronized底层实现原理：
+7.java锁体系：详见图片，https://www.cnblogs.com/jyroy/p/11365935.html（特别好的一篇文章）
+    java中的锁主要为：内置锁synchronized（一种独占锁），juc包下的锁。
+    锁有哪些：乐观锁、悲观锁、自旋锁、适应性自旋锁、无锁、偏向锁、轻量级锁、重量级锁、公平锁、非公平锁、可重入锁、不可重入锁、独享锁、共享锁。
+8.synchronized和ReentrantLock的区别：
+    a.两者的共同点：
+        1.都是用来协调多线程对共享对象、变量的访问。
+        2.都是可重入锁，同一线程可以多次获得同一个锁。
+        3.都保证了可见性和互斥性。
+    b.两者的不同点：
+        1.ReentrantLock显示的获得、释放锁，synchronized隐式获得释放锁。
+        2.ReentrantLock可响应中断、可轮回，synchronized是不可以响应中断的，为处理锁的不可用性提供了更高的灵活性。
+        3.ReentrantLock是API级别的，synchronized是JVM级别的。
+        4.ReentrantLock可以实现公平锁。
+        5.ReentrantLock通过Condition可以绑定多个条件。
+        6.底层实现不一样，synchronized是同步阻塞，使用的是悲观并发策略，lock是同步非阻塞，采用的是乐观并发策略。
+        7.Lock是一个接口，而synchronized是Java中的关键字，synchronized是内置的语言实现。
+        8.synchronized在发生异常时，会自动释放线程占有的锁，因此不会导致死锁现象发生；而Lock在发生异常时，如果没有主动通过unLock()去释放锁，则很可能造成死锁现象，因此使用Lock时需要在finally块中释放锁。
+        9.Lock可以让等待锁的线程响应中断，而synchronized却不行，使用synchronized时，等待的线程会一直等待下去，不能够响应中断。
+        10.通过Lock可以知道有没有成功获取锁，而synchronized却无法办到。
+        11.Lock可以提高多个线程进行读操作的效率，既就是实现读写锁等。
+9.synchronized底层实现原理：
 
 
 
