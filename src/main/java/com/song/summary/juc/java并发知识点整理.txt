@@ -175,6 +175,7 @@
             线程执行完run()方法后，会自动转换到TERMINATED状态，当然如果执行run()方法的时候异常抛出，也会导致线程终止。有时需要强制中断run()方法的执行，可以调用Thread类里面的stop()方法，不过已经标记为@Deprecated，
             所以不建议使用，可以改为调用interrupt()方法。
 7.java锁体系：
+    a.自旋锁：
 8.synchronized底层实现原理：
 
 
