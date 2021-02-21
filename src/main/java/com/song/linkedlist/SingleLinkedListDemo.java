@@ -177,7 +177,7 @@ class DoubleLinkedList {
             }
             temp = temp.next;
         }
-        if(temp.next!=null){
+        if (temp.next != null) {
             node.next = temp.next;
             temp.next.pre = node;
         }
