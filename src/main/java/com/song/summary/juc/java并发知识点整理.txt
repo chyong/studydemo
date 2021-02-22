@@ -256,20 +256,7 @@
         jdk1.6中默认是开启偏向锁和轻量级锁的，可以通过-XX:-UseBiasedLocking来禁用偏向锁。
         锁的升级全过程详见图片。
 10.AQS&Lock：
-    a.ReentrantLock：
-        ReentrantLock是一种基于AQS框架的应用实现，是JDK中的一种线程并发访问的同步手段，它的功能类似于synchronized是一种互斥锁，可以保证线程安全。而且它具有比synchronized更多的特性，
-        比如它支持手动加锁与解锁，支持公平、非公平锁。
-            //使用ReentrantLock进行同步
-            ReentrantLock lock = newReentrantLock(false);//false为非公平锁，true为公平锁
-            lock.lock()//加锁
-            lock.unlock()//解锁
-        ReentrantLock如何实现synchronized不具备的公平与非公平性呢？
-            在ReentrantLock内部定义了一个Sync的内部类，该类继承AbstractQueuedSynchronized，对该抽象类的部分方法做了实现；
-            并且还定义了两个子类：
-                1.FairSync 公平锁的实现。
-                2.NonfairSync 非公平锁的实现这两个类都继承自Sync，也就是间接继承了AbstractQueuedSynchronized，所以这一个ReentrantLock同时具备公平与非公平特性。
-                上面主要涉及的设计模式：模板模式-子类根据需要做具体业务实现。
-    b.AQS：
+    a.AQS：
         java并发编程的核心在于java.util.concurrent包。而juc当中大多数同步器实现都是围绕着共同的基础行为，比如等待队列、条件队列、独占获取、共享获取等，而这个行为的抽象就是基于AbstractQueuedSynchronizer，
         简称AQS。AQS定义了一套多线程访问共享资源的同步器框架，是一个依赖状态（state）的同步器。
         AQS具备特性：
@@ -289,8 +276,13 @@
             Exclusive-独占，只有一个线程能执行，如ReentrantLock。
             Share-共享，多个线程可以同时执行，如Semaphore/CountDownLatchAQS定义两种队列同步等待队列条件等待队列。
         AQS定义两种队列：
-            同步等待队列
-            条件等待队列
+            同步等待队列（CLH）：
+                CLH同步队列是一个先进先出的队列，实现为双向链表，AQS依赖它来完成同步状态的管理：
+                    当前线程如果获取同步状态失败时，AQS则会将当前线程已经等待状态等信息构造成一个节点（Node）并将其加入到CLH同步队列，同时会阻塞当前线程。
+                    当同步状态释放时，会把首节点唤醒，使其再次尝试获取同步状态。
+            条件等待队列（Condition）：
+                Condition将Object监视器方法（wait、notify和notifyAll）分解成截然不同的对象，以便通过将这些对象与任意Lock实现组合使用，为每个对象提供多个等待set（wait-set）。
+                其中，Lock替代了synchronized方法和语句的使用，Condition替代了Object监视器方法的使用。
         不同的自定义同步器争用共享资源的方式也不同。自定义同步器在实现时只需要实现共享资源state的获取与释放方式即可，至于具体线程等待队列的维护（如获取资源失败入队/唤醒出队等），AQS已经在顶层实现好了。
         自定义同步器实现时主要实现以下几种方法：
             isHeldExclusively()：该线程是否正在独占资源。只有用到condition才需要去实现它。
@@ -298,16 +290,31 @@
             tryRelease(int)：独占方式。尝试释放资源，成功则返回true，失败则返回false。
             tryAcquireShared(int)：共享方式。尝试获取资源。负数表示失败；0表示成功，但没有剩余可用资源；正数表示成功，且有剩余资源。
             tryReleaseShared(int)：共享方式。尝试释放资源，如果释放后允许唤醒后续等待结点返回true，否则返回false。
-
-
-
-
-
-   c.Semaphore&CyclicBarrier：
-
-
-
-
+    b.ReentrantLock：
+        ReentrantLock是一种基于AQS框架的应用实现，是JDK中的一种线程并发访问的同步手段，它的功能类似于synchronized是一种互斥锁，可以保证线程安全。而且它具有比synchronized更多的特性，
+        比如它支持手动加锁与解锁，支持公平、非公平锁。
+            //使用ReentrantLock进行同步
+            ReentrantLock lock = newReentrantLock(false);//false为非公平锁，true为公平锁
+            lock.lock()//加锁
+            lock.unlock()//解锁
+        ReentrantLock如何实现synchronized不具备的公平与非公平性呢？
+            在ReentrantLock内部定义了一个Sync的内部类，该类继承AbstractQueuedSynchronized，对该抽象类的部分方法做了实现；
+            并且还定义了两个子类：
+                1.FairSync 公平锁的实现。
+                2.NonfairSync 非公平锁的实现这两个类都继承自Sync，也就是间接继承了AbstractQueuedSynchronized，所以这一个ReentrantLock同时具备公平与非公平特性。
+                上面主要涉及的设计模式：模板模式-子类根据需要做具体业务实现。
+        AQS独占锁底层实现：
+            state初始的时候为0，在多线程条件下，线程要执行临界区的代码，必须首先获取state，某个线程获取成功之后，通过CAS操作将state加1，其他线程再获取的话由于共享资源已被占用，所以会到FIFO等待队列去等待，
+            等占有state的线程执行完临界区的代码释放资源(state减1)后，会唤醒FIFO队列中的下一个等待线程（head中的下一个结点）去获取state。
+            state由于是多线程共享变量，所以必须定义成volatile，以保证state的可见性, 同时虽然volatile能保证可见性，但不能保证原子性，所以AQS提供了对state的原子操作方法（通过CAS操作），保证了线程安全。
+            另外AQS中实现的FIFO队列（CLH 队列）其实是双向链表实现的，由head, tail节点表示，head结点代表当前占用的线程，其他节点由于暂时获取不到锁所以依次排队等待锁释放。
+            两篇比较好的相关文章：
+                https://mp.weixin.qq.com/s/iNz6sTen2CSOdLE0j7qu9A
+                https://mp.weixin.qq.com/s/trsjgUFRrz40Simq2VKxTA
+    c.CountDownLatch&Semaphore&CyclicBarrier：
+        相关文章：
+            https://mp.weixin.qq.com/s/TDw7GnzDw5FK3RWwkIzzZA
+            https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf3-b3a36433faa6/cburl0
 11.java线程池：
     线程池做的工作主要是控制运行的线程的数量，处理过程中将任务放入队列，然后在线程创建后启动这些任务，如果线程数量超过了最大数量超出数量的线程排队等候，等其它线程执行完毕，再从队列中取出任务来执行。
     a.线程池优势：
@@ -370,5 +377,5 @@
         3.当一个线程完成任务时，它会从队列中取下一个任务来执行。
         4.当一个线程无事可做，超过一定的时间（keepAliveTime）时，线程池会判断，如果当前运行的线程数大于corePoolSize，那么这个线程就被停掉。所以线程池的所有任务完成后，它
           最终会收缩到corePoolSize的大小。
-
+12.ThreadLocal：https://mp.weixin.qq.com/s/LzkZXPtLW2dqPoz3kh3pBQ
 
