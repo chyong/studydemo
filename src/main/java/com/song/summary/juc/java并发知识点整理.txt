@@ -308,10 +308,74 @@
             等占有state的线程执行完临界区的代码释放资源(state减1)后，会唤醒FIFO队列中的下一个等待线程（head中的下一个结点）去获取state。
             state由于是多线程共享变量，所以必须定义成volatile，以保证state的可见性, 同时虽然volatile能保证可见性，但不能保证原子性，所以AQS提供了对state的原子操作方法（通过CAS操作），保证了线程安全。
             另外AQS中实现的FIFO队列（CLH 队列）其实是双向链表实现的，由head, tail节点表示，head结点代表当前占用的线程，其他节点由于暂时获取不到锁所以依次排队等待锁释放。
+            tryAcquire(int)（尝试获取state）：
+                1.state为0时，代表锁已经被释放，可以去获取，于是使用CAS去重新获取锁资源，如果获取成功，则代表竞争锁成功，使用setExclusiveOwnerThread(current)记录下此时占有锁的线程，看到这里的CAS，
+                  大家应该不难理解为啥当前实现是非公平锁了，因为队列中的线程与新线程都可以CAS获取锁，新来的线程不需要排队。
+                2.如果state不为0，代表之前已有线程占有了锁，如果此时的线程依然是之前占有锁的线程（current == getExclusiveOwnerThread()为true），代表此线程再一次占有了锁（可重入锁），此时更新state，
+                  记录下锁被占有的次数（锁的重入次数）,这里的setState方法不需要使用CAS更新，因为此时的锁就是当前线程占有的，其他线程没有机会进入这段代码执行。所以此时更新state是线程安全的。
+            acquireQueued(addWaiter(mode))（将未获取到state的线程入队）：
+                如果tryAcquire(arg)执行失败，代表获取锁失败，则执行acquireQueued方法，将线程加入FIFO等待队列，首先会调用addWaiter(Node.EXCLUSIVE)将包含有当前线程的Node节点入队，
+                Node.EXCLUSIVE代表此结点为独占模式。
+                    addWaiter()：首先是获取FIFO队列的尾结点，如果尾结点存在，则采用CAS的方式将等待线程入队，如果尾结点为空则执行enq方法。
+                               enq()：首先判断tail是否为空，如果为空说明FIFO队列的head，tail还未构建，此时先构建头结点，构建之后再用CAS的方式将此线程结点入队。
+                               问题：使用CAS创建head节点的时候只是简单调用了new Node()方法，并不像其他节点那样记录thread，这是为啥？
+                                        因为head结点为虚结点，它只代表当前有线程占用了state，至于占用state的是哪个线程，其实是调用了上文的setExclusiveOwnerThread(current) ，
+                                        即记录在exclusiveOwnerThread属性里。
+                如果当前结点的前一个节点是head结点，且获取锁（tryAcquire）成功，就把head指向当前节点，并且让原head结点出队，这样由于原head不可达，会被垃圾回收。如果当前节点的上一个节点不为head，
+                且它的状态为SIGNAL，则结点进入阻塞状态。将head设置成当前结点后，要把节点的thread, pre设置成null，因为之前分析过了，head是虚节点，不保存除waitStatus（结点状态）的其他信息，
+                所以这里把thread ,pre置为空，因为占有锁的线程由exclusiveThread记录了，如果head再记录thread不仅多此一举，反而在释放锁的时候要多操作一遍head的thread释放。
+                如果前一个节点不是head或者竞争锁失败，则首先调用shouldParkAfterFailedAcquire方法判断锁是否应该停止自旋进入阻塞状态。
+                    shouldParkAfterFailedAcquire()：
+                        1.根据之前Node类的注释，如果前驱节点为SIGNAL，则当前节点可以进入阻塞状态。
+                        2.如果前驱节点为取消状态，则前驱节点需要移除。
+                        3.如果前驱节点小于等于0，则需要首先将其前驱节点置为SIGNAL，因为前文我们分析过，当前节点进入阻塞的一个条件是前驱节点必须为SIGNAL，这样下一次自旋后发现前驱节点为SIGNAL，
+                          就会返回true。
+                shouldParkAfterFailedAcquire返回true代表线程可以进入阻塞中断，parkAndCheckInterrupt则是让线程阻塞。
+                cancelAcquire()，如果线程自旋中因为异常等原因获取锁最终失败，则会调用此方法。
+            tryRelease(int)（释放锁）：
+                锁释放成功后唤醒之后head之后节点，让它来竞争锁，这里释放锁的条件为啥是h != null && h.waitStatus != 0呢？
+                     1.如果 h == null, 这有两种可能，一种是一个线程在竞争锁，现在它释放了，当然没有所谓的唤醒后继节点，一种是其他线程正在运行竞争锁，只是还未初始化头节点，既然其他线程正在运行，
+                       也就无需执行唤醒操作。
+                     2.如果 h != null 且 h.waitStatus == 0，说明head的后继节点正在自旋竞争锁，也就是说线程是运行状态的，无需唤醒。
+                     3.如果 h != null 且 h.waitStatus < 0, 此时waitStatus值可能为SIGNAL，或PROPAGATE，这两种情况说明后继结点阻塞需要被唤醒。
+            unparkSuccessor(node)（唤醒head之后的节点）：
+                这里的寻找队列的第一个非取消状态的节点为啥要从后往前找呢，因为节点入队并不是原子操作，线程自旋时时是先执行node.pre = pred, 然后再执行pred.next = node，
+                如果unparkSuccessor刚好在这两者之间执行，此时是找不到head的后继节点的。
+            Condition实现原理：
+                Condition是在java 1.5中才出现的，它用来替代传统的Object的wait()、notify()实现线程间的协作，相比使用Object的wait()、notify()，使用Condition中的await()、
+                signal()这种方式实现线程间协作更加安全和高效。因此通常来说比较推荐使用Condition其中AbstractQueueSynchronizer中实现了Condition中的方法，
+                主要对外提供awaite(Object.wait())和signal(Object.notify())调用。
+                    线程一执行await()方法，await()方法中首先调用addConditionWaiter()将当前线程加入到Condition队列中。这里会用当前线程创建一个Node节点，waitStatus为CONDITION。
+                    接着会释放该节点的锁，调用之前解析过的release()方法，释放锁后此时会唤醒被挂起的线程。
+                    线程二会继续尝试获取锁。接着调用isOnSyncQueue()方法判断当前节点是否为Condition队列中的头部节点，如果是则调用LockSupport.park(this)挂起Condition中当前线程。
+                    此时线程一被挂起，线程二获取锁成功。
+                    线程二执行signal()方法：
+                        先判断当前线程是否为获取锁的线程，如果不是则直接抛出异常。接着调用doSignal()方法来唤醒线程。这里先从transferForSignal()方法来看，
+                        通过上面的分析我们知道Condition队列中只有线程一创建的一个Node节点，且waitStatue为CONDITION，先通过CAS修改当前节点waitStatus为0，
+                        然后执行enq()方法将当前线程加入到等待队列中，并返回当前线程的前置节点。接着开始通过CAS修改当前节点的前置节点waitStatus为SIGNAL，
+                        并且唤醒当前线程。线程一被唤醒后，继续执行await()方法中的while循环。因为此时线程一的waitStatus已经被修改为0，所以执行isOnSyncQueue()方法会返回false。跳出while循环。
+                        接着执行acquireQueued()方法，这里之前也有讲过，尝试重新获取锁，如果获取锁失败继续会被挂起。直到另外线程释放锁才被唤醒。此时线程一的流程都已经分析完了，等线程二释放锁后，
+                        线程一会继续重试获取锁，流程到此终结。
             两篇比较好的相关文章：
                 https://mp.weixin.qq.com/s/iNz6sTen2CSOdLE0j7qu9A
                 https://mp.weixin.qq.com/s/trsjgUFRrz40Simq2VKxTA
     c.CountDownLatch&Semaphore&CyclicBarrier：
+        1.CountDownLatch（线程计数器）：
+            CountDownLatch类位于java.util.concurrent包下，利用它可以实现类似计数器的功能。比如有一个任务A，它要等待其他4个任务执行完毕之后才能执行，此时就可以利用CountDownLatch
+            来实现这种功能了，主要方法为：await()、countDown()，当一个线程调用await方法时，就会阻塞当前线程。每当有线程调用一次countDown方法时，计数就会减1。当count的值等于0的时候，
+            被阻塞的线程才会继续运行。
+        2.CyclicBarrier（回环栅栏-等待至barrier状态再全部同时执行）：
+            字面意思回环栅栏，通过它可以实现让一组线程等待至某个状态之后再全部同时执行。叫做回环是因为当所有等待线程都被释放以后，CyclicBarrier可以被重用。我们暂且把这个状态就叫做barrier，
+            当调用await()方法之后，线程就处于barrier了。
+            CyclicBarrier中最重要的方法就是await方法，它有2个重载版本：
+                1. public int await()：用来挂起当前线程，直至所有线程都到达barrier状态再同时执行后续任务；
+                2. public int await(long timeout, TimeUnit unit)：让这些线程等待至一定的时间，如果还有线程没有到达barrier状态就直接让到达barrier的线程执行后续任务。
+        3.Semaphore（信号量-控制同时访问的线程个数）：
+            Semaphore翻译成字面意思为信号量，Semaphore可以控制同时访问的线程个数，通过acquire()获取一个许可，如果没有就等待，而release()释放一个许可，一般可用于流量的控制。
+        补充：
+            1.CountDownLatch和CyclicBarrier都能够实现线程之间的等待，只不过它们侧重点不同；CountDownLatch一般用于某个线程A等待若干个其他线程执行完任务之后，它才执行；
+              而CyclicBarrier一般用于一组线程互相等待至某个状态，然后这一组线程再同时执行；另外，CountDownLatch是不能够重用的，而CyclicBarrier是可以重用的。
+            2.Semaphore其实和锁有点类似，它一般用于控制对某组资源的访问权限。
         相关文章：
             https://mp.weixin.qq.com/s/TDw7GnzDw5FK3RWwkIzzZA
             https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf3-b3a36433faa6/cburl0
