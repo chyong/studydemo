@@ -1,7 +1,7 @@
 package com.song.leetcode;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 82.删除排序链表中的重复元素II
@@ -12,34 +12,35 @@ public class DeleteDuplicatesII {
         ListNode l2 = new ListNode(4, l1);
         ListNode l3 = new ListNode(3, l2);
         ListNode l4 = new ListNode(2, l3);
-        ListNode l5 = new ListNode(1, l4);
+        ListNode l5 = new ListNode(2, l4);
         ListNode l6 = new ListNode(1, l5);
         printNode(deleteDuplicates(l6));
     }
 
     public static ListNode deleteDuplicates(ListNode head) {
-        List<Integer> list = new ArrayList<>();
+        Map<Integer, Integer> map = new HashMap<>();
         ListNode temp = head;
-        if(null==head) return null;
-        while(temp.next!=null){
-            if(temp.val==temp.next.val){
-                list.add(temp.val);
-                temp.next=temp.next.next;
-            }else{
-                temp=temp.next;
+        if (null == head) return null;
+        while (temp.next != null) {
+            if (temp.val == temp.next.val) {
+                map.put(temp.val, temp.val);
+                temp.next = temp.next.next;
+            } else {
+                temp = temp.next;
             }
         }
-        ListNode temp1 = head;
-        while(temp1.next!=null){
-            if(list.contains(temp1.val)){
-                temp1=temp1.next.next;
-            }else{
-                temp1=temp1.next;
+        ListNode temp2 = new ListNode(0);
+        temp2.next = head;
+        temp = temp2;
+        while (temp.next != null) {
+            if (map.get(temp.next.val) != null) {
+                temp.next = temp.next.next;
+            } else {
+                temp = temp.next;
             }
 
         }
-        System.out.println(list);
-        return head;
+        return temp2.next;
     }
 
     public static void printNode(ListNode node) {
