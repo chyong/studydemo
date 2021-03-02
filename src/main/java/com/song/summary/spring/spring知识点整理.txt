@@ -1,8 +1,7 @@
 1.spring IOC：
 
-
 2.spring AOP：
 
 3.spring Bean生命周期：
-
+    a.
 4.spring循环依赖：
