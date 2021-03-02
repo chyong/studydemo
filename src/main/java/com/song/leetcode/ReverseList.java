@@ -15,12 +15,23 @@ public class ReverseList {
     }
 
     public static ListNode reverseList(ListNode head) {
-        ListNode reserveHead = null;
-        while (head != null) {
-            reserveHead = new ListNode(head.val, reserveHead);
-            head = head.next;
+//        ListNode reserveHead = null;
+//        while (head != null) {
+//            reserveHead = new ListNode(head.val, reserveHead);
+//            head = head.next;
+//        }
+//        return reserveHead;
+        //迭代法
+        ListNode prev = null;
+        ListNode curr = head;
+        ListNode next;
+        while (curr != null) {
+            next = curr.next;
+            curr.next = prev;
+            prev = curr;
+            curr = next;
         }
-        return reserveHead;
+        return prev;
     }
 
     public static void printNode(ListNode node) {
