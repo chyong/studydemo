@@ -1,4 +1,4 @@
-Spring常见面试题：https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf3-b3a36433faa6/vg6lw0#bRUgi
+spring常见面试题：https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf3-b3a36433faa6/vg6lw0#bRUgi
 1.spring Bean生命周期：
     Bean生命周期指的是spring中一个Bean从创建到销毁的过程。简单描述：
         1.解析类得到BeanDefinition。
@@ -27,19 +27,23 @@ Spring常见面试题：https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf
                 在AbstractAutowireCapableBeanFactory类的createBean()方法中，一开始就会调用 Class<?> resolvedClass = resolveBeanClass(mbd, beanName);
                 去加载类，其中doResolveBeanClass方法会判断beanClass属性的类型是不是Class对象，如果是，那么就直接返回，如果不是，则会根据类名进行加载。
                 会利用BeanFactory所设置的类加载器来加载类，如果没有设置，则默认使用ClassUtils.getDefaultClassLoader()所返回的类加载器来加载。
-                ClassUtils.getDefaultClassLoader()：
+                ClassUtils.getDefaultClas  sLoader()：
                     a.优先获取当前线程中的ClassLoader。
                     b.如果为空，则获取加载ClassUtils类的类加载器（正常情况下，就是AppClassLoader，但是如果是在Tomcat中运行，那么则会是Tomcat中为每个应用所创建的WebappClassLoader）。
                     c.如果还是为空，那么则是bootstrap类加载器加载的ClassUtils类，那则获取系统类加载器进行加载。
             4.实例化前：
                 允许第三方可以不按照Spring的正常流程来创建一个Bean，可以利用InstantiationAwareBeanPostProcessor的postProcessBeforeInstantiation方法来提前返回一个Bean对象，直接结束Bean的生命周期。
             5.推断构造方法：
+                推断构造方法流程见图片
                 https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf3-b3a36433faa6/ng6l6p
             6.实例化：
-                通过构造方法反射得到一个实例。
+                通过构造方法反射或者Cglib得到一个实例。
+                Spring当中提供了两种实例化方案：BeanUtils和Cglib方式。BeanUtils实现机制是通过Java的反射机制，Cglib是一个第三方类库采用的是一种字节码加强方式机制。Spring中采用的默认实例化策略是Cglib。
             7.BeanDefinition的后置处理：
                 这里可以处理BeanDefinition，但是此时实例对象已经生成好了，所以修改beanClass已经没用了，但是可以修改PropertyValues。
-            8.填充属性：依赖注入
+            8.填充属性：依赖注入，简单理解依赖注入的过程就是对这些property赋值的过程，而只是property信息在BeanDefinition的解析过程中，开始依赖注入的过程，先处理Autowire的注入，根据自动注入模式调用相应的处理方法。
+                      调用applyPropertyValues()方法对属性进行注入，其中包含了BeanDefinition解析（BeanDefinitionResolver()）以及属性填充（setPropertyValue()方法是真正设置属性依赖的地方，
+                      该方法的实现是在BeanWrapper的实现类BeanWrapperImpl中）的过程。
             9.执行Aware：
                 比如BeanNameAware，BeanFactoryAware等等，Aware表示回调，Spring会回调Aware接口中的方法，而程序员就可以在Aware接口的方法中去进行干涉。
             10.初始化前
@@ -87,8 +91,10 @@ Spring常见面试题：https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf
             比如ConfigurationClassPostProcessor，它就是一个BeanFactory的后置处理器，它负责解析配置类，完成扫描，把扫描得到的BeanDefinition注册到BeanFactory中。BeanFactory的后置处理器中可以拿到BeanFactory，
             而拿到BeanFactory之后就可以使用BeanFactory中存储的东西了，比如BeanDefinition，比如可以创建Bean。如果定义了多个BeanFactory的后置处理器，可以通过实现Ordered接口来控制BeanFactory的后置处理器的执行顺序。
 2.spring IOC：
-    IOC是Spring Framework中众多特性中的一个特性，表示控制反转，Spring相当于项目里的管家，管理项目中的对象，控制反转，表示对象的控制权本来是在程序员手中的，现在交给了Spring，所以Spring获得了对象的控制权，
+    IOC是Spring Framework中众多特性中的一个特性，表示控制反转(当某个角色(可能是一个Java实例，调用者)需要另一个角色(另一个Java实例，被调用者)的协助时，在传统的程序设计过程中，通常由调用者来创建被调用者的实例。
+    但在Spring里，创建被调用者的工作不再由调用者来完成，因此称为控制反转)，Spring相当于项目里的管家，管理项目中的对象，对象的控制权本来是在程序员手中的，现在交给了Spring，所以Spring获得了对象的控制权，
     比如，Spring负责去进行实例化得到对象，Spring负责通过反射去给对象中的属性进行赋值，这些动作都不需要程序员去做，Spring自动帮程序员做了。
+    依赖注入流程见图片
     a.Spring中到底有几种依赖注入的方式？
         首先分两种：
         1.手动注入：
@@ -128,7 +134,7 @@ Spring常见面试题：https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf
                 首先，如果是byType或byName，那么该bean一定要有一个无参的构造方法，因为如果只有有参构造方法，那么Spring将无法进行实例化，因为Spring如果要实例化肯定需要利用构造方法，而Spring没法给构造方法传值。
                 然后，如果是constructor，那么就可以不写set方法了，当某个bean是通过构造方法来注入时，表示Spring在利用构造方法实例化一个对象时，可以利用构造方法的参数信息从Spring容器中去找bean，
                 找到bean之后作为参数传给构造方法，从而实例化得到一个bean对象。
-                我们这里先不考虑一个类有多个构造方法的情况，后面单独讲推断构造方法。我们这里只考虑只有一个有参构造方法。
+                我们这里先不考虑一个类有多个构造方法的情况，只考虑只有一个有参构造方法。
                 其实构造方法注入相当于byType+byName，普通的byType是根据set方法中的参数类型去找bean，找到多个会报错，而constructor就是通过构造方法中的参数类型去找bean，如果找到多个会根据参数名确定。
                 另外两个：
                     1.no，表示关闭autowire
@@ -171,6 +177,14 @@ Spring常见面试题：https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf
                     进行注入
                     Spring会利用AutowiredAnnotationBeanPostProcessor的postProcessProperties()方法中，会遍历Set<InjectedElement>中的注入点开始进行注入。
     b.DefaultListableBeanFactory中resolveDependency()方法具体实现见图片，该方法表示，传入一个依赖描述（DependencyDescriptor），该方法会根据该依赖描述从BeanFactory中找出对应的唯一的一个Bean对象。
+        findAutowireCandidates()实现：
+            1.找出BeanFactory中类型为type的所有的Bean的名字，注意是名字，而不是Bean对象，因为我们可以根据BeanDefinition就能判断和当前type是不是匹配。
+            2.把resolvableDependencies中key为type的对象找出来并添加到result中。
+            3.遍历根据type找出的beanName，判断当前beanName对应的Bean是不是能够被自动注入。
+            4.先判断beanName对应的BeanDefinition中的autowireCandidate属性，如果为false，表示不能用来进行自动注入，如果为true则继续进行判断。
+            5.判断当前type是不是泛型，如果是泛型是会把容器中所有的beanName找出来的，如果是这种情况，那么在这一步中就要获取到泛型的真正类型，然后进行匹配，如果当前beanName和当前泛型对应的真实类型匹配，那么则继续判断。
+            6.如果当前DependencyDescriptor上存在@Qualifier注解，那么则要判断当前beanName上是否定义了Qualifier，并且是否和当前DependencyDescriptor上的Qualifier相等，相等则匹配。
+            7.经过上述验证之后，当前beanName才能成为一个可注入的，添加到result中。
     c.@Resource注解底层原理：
         具体实现流程见图片
         总结，对于@Resource：
@@ -179,14 +193,21 @@ Spring常见面试题：https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf
               会根据注入点类型去找Bean
 3.spring AOP：
     AOP表示面向切面编程，是Spring Framework中众多特性中的一个特性，AOP可以对某个对象或某些对象的功能进行增加，比如对象中的方法进行增加，可以在执行某个方法之前额外的做一些事情，在某个方法执行之后额外的做一些事情，
-    通常，我们会利用AOP机制来实现权限控制，日志记录，缓存，包括Spring中的事务也是通过AOP来实现的。在Spring中，AOP是通过动态代理来实现的。
+    通常，我们会利用AOP机制来实现权限控制，日志记录，缓存，包括Spring中的事务也是通过AOP来实现的。在Spring中，AOP是通过动态代理来实现的（jdk以及cglib）。
+
     https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf3-b3a36433faa6/fwhx5s
 4.spring循环依赖：
     Spring中之所以会出现循环依赖跟Bean的生命周期有关系，在创建一个Bean的过程中如果依赖的另外一个Bean还没有创建，就会需要去创建依赖的那个Bean，而如果两个Bean相互依赖的话，就会出现循环依赖的问题。
     Spring使用三级缓存解决了循环依赖的问题：
-        1.第一级缓存是单例池singletonObjects：它是用来保存经过了完整生命周期之后的bean。
-        2.第二级缓存是earlySingletonObjects：它是用来保存暂时还没有经过完整生命周期的bean。
-        3.第三级缓存是singletonFactories：它是用来保存提前进行AOP的工厂，它的作用是预先准备一个工厂，这个工厂是在需要时才执行
+        1.singletonObjects：缓存某个beanName对应的经过了完整生命周期的bean。
+        2.earlySingletonObjects：缓存提前通过原始对象进行了AOP之后得到的代理对象，原始对象还没有进行属性注入和后续的BeanPostProcessor等生命周期。
+        3.singletonFactories：缓存的是一个ObjectFactory，也就是一个Lambda表达式。在创建一个Bean时，在每个Bean的生成过程中，都会提前暴露一个Lambda表达式，并保存到三级缓存中，这个Lambda表达式可能用到，
+          也可能用不到，如果没有出现循环依赖依赖当前bean，那么这个Lambda表达式无用，当前bean按照自己的生命周期执行，执行完后直接把当前bean放入singletonObjects中即可，如果出现了循环依赖依赖了当前bean，
+          则从三级缓存中（此时一二级缓存为空）获取Lambda表达式（提前暴露），并执行Lambda表达式得到一个AOP之后的代理对象(如果有AOP的话，如果无需AOP，则直接得到一个原始对象)，并把得到的对象放入二级缓存。
+        4.其实还要一个缓存，就是earlyProxyReferences，它用来记录某个原始对象是否进行过AOP了。
+            怎么判断一个对象是否经历过了AOP呢？
+                会利用上文提到的earlyProxyReferences，在AbstractAutoProxyCreator的postProcessAfterInitialization方法中，会去判断当前beanName是否在earlyProxyReferences中，
+                如果在则表示已经提前进行过AOP了，无需再次进行AOP。
     https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf3-b3a36433faa6/ghhnkw
 5.spring事务：
     在使用Spring框架时，可以有两种使用事务的方式，一种是编程式的，一种是申明式的，@Transactional注解就是申明式的。首先，事务这个概念是数据库层面的，Spring只是基于数据库中的事务进行了扩展，
@@ -194,8 +215,23 @@ Spring常见面试题：https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf
     在一个方法上加了@Transactional注解后，Spring会基于这个类生成一个代理对象，会将这个代理对象作为bean，当在使用这个代理对象的方法时，如果这个方法上存在@Transactional注解，
     那么代理逻辑会先把事务的自动提交设置为false，然后再去执行原本的业务逻辑方法，如果执行业务逻辑方法没有出现异常，那么代理逻辑中就会将事务进行提交，如果执行业务逻辑方法出现了异常，那么则会将事务进行回滚。
     当然，针对哪些异常回滚事务是可以配置的，可以利用@Transactional注解中的rollbackFor属性进行配置，默认情况下会对RuntimeException和Error进行回滚。
+    简单版流程：完整流程见图片
+        1.生成test事务状态对象。
+        2.test事务doBegin，获取并将数据库连接2825设置到test事务状态对象中。
+        3.把test事务信息设置到事务同步管理器中。
+        4.执行test业务逻辑方法（可以获取到test事务的信息）。
+            a.生成a事务状态对象，并且可以获取到当前线程中已经存在的数据库连接2825。
+            b.判断出来当前线程中已经存在事务。
+            c.如果需要新开始事务，就先挂起数据库连接2825，挂起就是把test事务信息从事务同步管理器中转移到挂起资源对象中，并把当前a事务状态对象中的数据库连接设置为null。
+            d.a事务doBegin，新生成一个数据库连接2826，并设置到a事务状态对象中。
+            e.把a事务信息设置到事务同步管理器中。
+            f.执行a业务逻辑方法（可以利用事务同步管理器获取到a事务信息）。
+            g.利用a事务状态对象，执行提交。
+            h.提交之后会恢复所挂起的test事务，这里的恢复，其实只是把挂起资源对象中所保存的信息再转移回事务同步管理器中。
+        5.继续执行test业务逻辑方法（仍然可以获取到test事务的信息）。
+        6.利用test事务状态对象，执行提交。
     https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf3-b3a36433faa6/ifr9g6
-6.ApplicationContext启动过程：
+6.applicationContext启动过程：
     简单步骤：
         1.初始化一个Reader和Scanner，Reader可以用来注册单个BeanDefinition，Scanner用来扫描得到BeanDefinition。
         2.通过Reader把配置类注册为一个BeanDefinition。
@@ -210,3 +246,8 @@ Spring常见面试题：https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf
         11.开始实例化非懒加载的单例bean。
         12.发布ContextRefreshedEvent事件。
     详解：https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf3-b3a36433faa6/bcoppm
+7.spring解析配置类以及扫描：
+    a.解析AppConfig类，生成对应的ConfigurationClass。
+    b.再扫描，扫描到的类都会生成对应的BeanDefinition，并且同时这些类也是ConfigurationClass。
+    c.再解析ConfigurationClass的其他信息，比如@ImportResource注解的处理，@Import注解的处理，@Bean注解的处理。
+    https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf3-b3a36433faa6/ridvn4
