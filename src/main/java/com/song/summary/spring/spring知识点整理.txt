@@ -194,7 +194,6 @@ spring常见面试题：https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf
 3.spring AOP：
     AOP表示面向切面编程，是Spring Framework中众多特性中的一个特性，AOP可以对某个对象或某些对象的功能进行增加，比如对象中的方法进行增加，可以在执行某个方法之前额外的做一些事情，在某个方法执行之后额外的做一些事情，
     通常，我们会利用AOP机制来实现权限控制，日志记录，缓存，包括Spring中的事务也是通过AOP来实现的。在Spring中，AOP是通过动态代理来实现的（jdk以及cglib）。
-
     https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf3-b3a36433faa6/fwhx5s
 4.spring循环依赖：
     Spring中之所以会出现循环依赖跟Bean的生命周期有关系，在创建一个Bean的过程中如果依赖的另外一个Bean还没有创建，就会需要去创建依赖的那个Bean，而如果两个Bean相互依赖的话，就会出现循环依赖的问题。
