@@ -1,0 +1,277 @@
+1.什么是Zookeeper？
+    官方文档上这么解释zookeeper，它是一个分布式协调框架，是Apache Hadoop的一个子项目，它主要是用来解决分布式应用中经常遇到的一些数据管理问题，如：统一命名服务、状态同步服务、集群管理、分布式应用配置项的管理等。
+    主要是两个核心概念：文件系统数据结构+监听通知机制：
+        a.文件系统数据结构：
+            Zookeeper维护一个类似文件系统的数据结构（树形结构）：
+                每个子目录项都被称作为znode(目录节点)，和文件系统类似，我们能够自由的增加、删除znode，在一个znode下增加、删除子znode。
+                有四种类型的znode：
+                1.持久节点：
+                    所谓持久节点，是指在节点创建后，就一直存在，直到有删除操作来主动清除这个节点。
+                2.临时节点：
+                    和持久节点不同的是，临时节点的生命周期和客户端会话绑定。也就是说，如果客户端会话失效，那么这个节点就会自动被清除掉。注意，这里提到的是会话失效，而非连接断开。另外，在临时节点下面不能创建子节点。
+                3.持久顺序节点：
+                    这类节点的基本特性和持久节点是一致的。额外的特性是，在ZK中，每个父节点会为他的第一级子节点维护一份时序，会记录每个子节点创建的先后顺序。基于这个特性，在创建子节点的时候，可以设置这个属性，
+                    那么在创建节点过程中，ZK会自动为给定节点名加上一个数字后缀，作为新的节点名。这个数字后缀的范围是整型的最大值。
+                4.临时顺序节点：
+                    类似临时节点和顺序节点。
+                补充：
+                    5.Container节点（3.5.3 版本新增，如果Container节点下面没有子节点，则Container节点在未来会被Zookeeper自动清除，定时任务默认60s检查一次）。
+                    6.TTL节点(默认禁用，只能通过系统配置zookeeper.extendedTypesEnabled=true开启，不稳定，TTL节点创建后，如果3秒内没有数据修改，并且没有子节点，则会自动删除)。
+        b.监听通知机制（Watch）：
+            客户端注册监听它关心的任意节点，或者目录节点及递归子目录节点。
+                1.如果注册的是对某个节点的监听，则当这个节点被删除，或者被修改时，对应的客户端将被通知
+                2.如果注册的是对某个目录的监听，则当这个目录有子节点被创建，或者有子节点被删除，对应的客户端将被通知
+                3.如果注册的是对某个目录的递归子节点进行监听，则当这个目录下面的任意子节点有目录结构的变化（有子节点被创建，或被删除）或者根节点有数据变化时，对应的客户端将被通知。
+            注意：所有的通知都是一次性的，及无论是对节点还是对目录进行的监听，一旦触发，对应的监听（Watcher实例）即被移除。递归子节点，监听是对所有子节点的，所以，每个子节点下面的事件同样只会被触发一次。
+                 如果还需要关注数据的变化，需要再次注册监听（Watcher实例）。
+        c.Zookeeper经典的应用场景：
+            分布式配置中心、分布式注册中心、分布式锁、分布式队列、集群选举、分布式屏障、发布/订阅
+2.Zookeeper的ACL权限控制(Access Control List)：
+    Zookeeper做为分布式架构中的重要中间件，通常会在上面以节点的方式存储一些关键信息，默认情况下，所有应用都可以读写任何节点，在复杂的应用中，这不太安全，Zookeeper通过ACL机制来解决访问权限问题。
+        1.ZooKeeper的权限控制是基于每个znode节点的，需要对每个节点设置权限。
+        2.每个znode支持设置多种权限控制方案和多个权限。
+        3.子节点不会继承父节点的权限，客户端无权访问某节点，但可能可以访问它的子节点。
+    ACL权限控制，使用：schema:id:permission来标识，主要涵盖3个方面：
+        1.权限模式（Schema）：鉴权的策略
+            world：只有一个用户，anyone，代表所有人（默认）
+            ip：使用IP地址认证
+            auth：使用已添加认证的用户认证
+            digest：使用“用户名:密码”方式认证
+        2.授权对象（ID）：
+            授权对象ID是指，权限赋予的用户或者一个实体，例如：IP地址或者机器。授权模式schema与授权对象ID之间关系：
+                world：只有一个id，即anyone
+                ip: 通常是一个ip地址或地址段，比如192.168.0.110或192.168.0.1/24
+                auth：用户名
+                digest：自定义，通常是"username:BASE64(SHA-1(username:password))"
+        3.权限（Permission）：
+            CREATE：简写为c，可以创建子节点
+            DELETE：简写为d，可以删除子节点（仅下一级节点），注意不是本节点
+            READ：简写为r，可以读取节点数据及显示子节点列表
+            WRITE：简写为w，可设置节点数据
+            ADMIN：简写为a，可以设置节点访问控制列表
+3.ZooKeeper内存数据和持久化：
+    Zookeeper数据的组织形式为一个类似文件系统的数据结构，而这些数据都是存储在内存中的，所以我们可以认为，Zookeeper是一个基于内存的小型数据库。
+        a.事务日志：
+            针对每一次客户端的事务操作，Zookeeper都会将他们记录到事务日志中，当然，Zookeeper也会将数据变更应用到内存数据库中。我们可以在zookeeper的主配置文件zoo.cfg中配置内存中的数据持久化目录，
+            也就是事务日志的存储路径dataLogDir。如果没有配置dataLogDir（非必填），事务日志将存储到dataDir（必填项）目录。
+            Zookeeper进行事务日志文件操作的时候会频繁进行磁盘IO操作，事务日志的不断追加写操作会触发底层磁盘IO为文件开辟新的磁盘块，即磁盘Seek。因此，为了提升磁盘IO的效率，
+            Zookeeper在创建事务日志文件的时候就进行文件空间的预分配-即在创建文件的时候，就向操作系统申请一块大一点的磁盘块。这个预分配的磁盘大小可以通过系统参数zookeeper.preAllocSize 进行配置。
+            事务日志文件名为：
+                log.<当时最大事务ID>，应为日志文件时顺序写入的，所以这个最大事务ID也将是整个事务日志文件中，最小的事务ID，日志满了即进行下一次事务日志文件的创建。
+        b.数据快照：
+            数据快照用于记录Zookeeper服务器上某一时刻的全量数据，并将其写入到指定的磁盘文件中。
+            可以通过配置snapCount配置每间隔事务请求个数，生成快照，数据存储在dataDir指定的目录中，可以通过如下方式进行查看快照数据（为了避免集群中所有机器在同一时间进行快照，
+            实际的快照生成时机为事务数达到[snapCount/2 + 随机数(随机数范围为1 ~ snapCount/2)] 个数时开始快照）。
+            快照事务日志文件名为：snapshot.<当时最大事务ID>，日志满了即进行下一次事务日志文件的创建。
+        有了事务日志，为啥还要快照数据？
+            快照数据主要是为了快速恢复，事务日志文件是每次事务请求都会进行追加的操作，而快照是达到某种设定条件下的内存全量数据。所以通常快照数据是反应当时内存数据的状态。事务日志是更全面的数据，所以恢复数据的时候，
+            可以先恢复快照数据，再通过增量恢复事务日志中的数据即可。
+4.Zookeeper分布式锁加锁原理：
+    利用临时顺序子节点
+    a.获取锁：
+        首先，在Zookeeper当中创建一个持久节点lock，这时客户端client1想要获取锁，它首先会在lock节点下创建一个临时顺序子节点lock1，然后查看此时lock节点下所有临时顺序节点并排序，如果自己创建的子节点lock1是顺序最靠前的一个，
+        则获取锁，否则向排序仅比它靠前的节点注册Watcher，用于监听该节点是否存在，这时意味着抢占锁失败进入等待状态。
+    b.释放锁：
+        假设客户端client1获取锁成功，等执行完业务代码后会删除由它创建的临时顺序子节点lock1，lock1一旦被删除，监听它的客户端client2会立马收到通知，这时候client2会查看此时lock节点下所有临时顺序节点并排序，
+        如果自己创建的子节点lock2是顺序最靠前的一个，则获取锁，后面流程同上。
+5.Zookeeper集群模式：
+    a.Zookeeper集群模式一共有三种类型的角色：
+        Leader：处理所有的事务请求（写请求），可以处理读请求，集群中只能有一个Leader。
+        Follower：只能处理读请求，同时作为Leader的候选节点，即如果Leader宕机，Follower节点要参与到新的Leader选举中，有可能成为新的Leader节点。
+        Observer：只能处理读请求，不能参与选举。
+    b.Zookeeper集群脑裂问题：
+        比如现在有一个由6台zkServer所组成的一个集群，分别部署在了两个机房，机房1部署了一个Leader及两个Follower，机房2部署了三个Follower，如果此时机房之间的网络断了，机房2内由于没有Leader会推选出新的Leader，
+        这个时候相当于两个集群同时提供服务，也就相当于原本一个集群，被分成了两个集群，出现了两个“大脑”，这就是脑裂。当机房之间的网络恢复后，会出现数据该怎么合并，数据冲突怎么解决等等问题。
+        Zookeeper采用过半机制解决脑裂问题：
+            在领导者选举的过程中，如果某台zkServer获得了超过半数（大于集群总机器数/2）的选票，则此zkServer就可以成为Leader了。比如现在集群中有5台zkServer，那么half=5/2=2，那么也就是说，
+            领导者选举的过程中至少要有三台zkServer投了同一个zkServer，才会符合过半机制，才能选出来一个Leader。
+            过半机制中为什么是大于，而不是大于等于呢？
+                回到刚刚的例子，一个集群由6台zkServer所组成，分别部署在了两个机房，机房1部署了一个Leader及两个Follower，机房2部署了三个Follower，当机房间的网络断了，此时过半机制的条件是set.size() > 3，
+                也就是说至少要4台zkServer才能选出来一个Leader，所以对于机房1来说它不能选出一个Leader，同样机房2也不能选出一个Leader，这种情况下整个集群当机房间的网络断掉后，整个集群将没有Leader。
+                而如果过半机制的条件是set.size() >= 3，那么机房1和机房2都会选出一个Leader，这样就出现了脑裂。所以我们就知道了，为什么过半机制中是大于，而不是大于等于。就是为了防止脑裂。
+    c.Zookeeper集群快速领导者选举原理：
+        Zookeeper的选举和人类的选举逻辑类似，Zookeeper需要实现人类选举的四个基本概念：
+            1.个人能力：
+                Zookeeper是一个数据库，集群中节点的数据越新就代表此节点能力越强，而在Zookeeper中可以通事务id(zxid)来表示数据的新旧，一个节点最新的zxid越大则该节点的数据越新。
+                所以Zookeeper选举时会根据zxid的大小来作为投票的基本规则。
+            2.改票：
+                Zookeeper集群中的某一个节点在开始进行选举时，首先认为自己的数据是最新的，会先投自己一票，并且把这张选票发送给其他服务器，这张选票里包含了两个重要信息：zxid和sid，sid表示这张选票投的服务器id，
+                zxid表示这张选票投的服务器上最大的事务id，同时也会接收到其他服务器的选票，接收到其他服务器的选票后，可以根据选票信息中的zxid来与自己当前所投的服务器上的最大zxid来进行比较，如果其他服务器的选票中的zxid较大，
+                则表示自己当前所投的机器数据没有接收到的选票所投的服务器上的数据新，所以本节点需要改票，改成投给和刚刚接收到的选票一样。
+            3.投票箱：
+                Zookeeper集群中会有很多节点，和人类选举不一样，Zookeeper集群并不会单独去维护一个投票箱应用，而是在每个节点内存里利用一个数组来作为投票箱。每个节点里都有一个投票箱，
+                节点会将自己的选票以及从其他服务器接收到的选票放在这个投票箱中。因为集群节点是相互交互的，并且选票的PK规则是一致的，所以每个节点里的这个投票箱所存储的选票都会是一样的，这样也可以达到公用一个投票箱的目的。
+            4.领导者：
+                Zookeeper集群中的每个节点，开始进行领导选举后，会不断的接收其他节点的选票，然后进行选票PK，将自己的选票修改为投给数据最新的节点，这样就保证了，每个节点自己的选票代表的都是自己暂时所认为的数据最新的节点，
+                再因为其他服务器的选票都会存储在投票箱内，所以可以根据投票箱里去统计是否有超过一半的选票和自己选择的是同一个节点，都认为这个节点的数据最新，一旦整个集群里超过一半的节点都认为某一个节点上的数据最新，则该节点就是领导者。
+        快速领导者选举（多层对列架构见图片）：
+            从架构图我们可以发现，快速领导者选举实现架构分为两层：应用层和传输层。所以初始化核心就是初始化传输层。
+                初始化步骤：
+                    a.初始化QuorumCnxManager
+                    b.初始化QuorumCnxManager.Listener
+                    c.运行QuorumCnxManager.Listener
+                    d.运行QuorumCnxManager
+                    e.返回FastLeaderElection对象
+                1.传输层初始化：
+                    QuorumCnxManager介绍：
+                        QuorumCnxManager类就是传输层实现，传输层的每个zkServer需要发送选票信息给其他服务器，这些选票信息来至应用层，在传输层中将会按服务器id分组保存在queueSendMap中。
+                        传输层的每个zkServer需要发送选票信息给其他服务器，SendWorker就是封装了Socket的发送器，而senderWorkerMap就是用来记录其他服务器id以及对应的SendWorker的。
+                        传输层的每个zkServer将接收其他服务器发送的选票信息，这些选票会保存在recvQueue中，以提供给应用层使用。
+                        QuorumCnxManager.Listener负责开启socket监听。
+                        zk只允许服务器ID较大者去连服务器ID较小者，小ID服务器去连大ID服务器会被拒绝，这样防止重复建立socket连接造成资源浪费。
+                        SendWorker、RecvWorker介绍：
+                            SendWorker，它是zkServer用来向其他服务器发送选票信息的。它封装了socket并且是一个线程，实际上SendWorker的底层实现是---SendWorker线程会不停的从queueSendMap中获取选票信息然后发送到Socket上。
+                            基于同样的思路，我们还需要一个线程从Socket上获取数据然后添加到recvQueue中，这就是RecvWorker的功能。
+                2.应用层初始化：
+                    FastLeaderElection类介绍：
+                        FastLeaderElection类是快速领导者选举实现的核心类，服务器在进行领导者选举时，在发送选票时也会同时接受其他服务器的选票，FastLeaderElection类也提供了和传输层类似的实现，
+                        将待发送的选票放在sendqueue中，由Messenger.WorkerSender发送到传输层queueSendMap中。同样，由Messenger.WorkerReceiver负责从传输层获取数据并放入recvqueue中。这样在应用层了，
+                        只需要将待发送的选票信息添加到sendqueue中即可完成选票信息发送，或者从recvqueue中获取元素即可得到选票信息。在构造FastLeaderElection对象时，会对sendqueue、recvqueue队列进行初始化，
+                        并且运行Messenger.WorkerSender与Messenger.WorkerReceiver线程。
+                3.快速领导者选举实现：
+                    QuorumPeer类的start方法前三步分析完，接下来我们来看看第四步，QuorumPeer类是一个ZooKeeperThread线程，上述代码实际就是运行一个线程，相当于运行QuorumPeer类中的run方法，
+                    这个方法也是集群模式下Zkserver启动最核心的方法。总结一下QuorumPeer类的start方法：
+                        1.加载持久化数据到内存
+                        2.初始化领导者选举策略
+                        3.初始化快速领导者选举传输层
+                        4.初始化快速领导者选举应用层
+                        5.开启主线程
+                    主线程开启之后，QuorumPeer类的start方法即执行完成，这时回到上层代码可以看到主线程会被join住：
+                        quorumPeer.start(); // 开启线程
+                        quorumPeer.join(); // join线程
+                    主线程：
+                        在主线程里，会有一个主循环(Main loop)，主循环伪代码如下：
+                            while (服务是否正在运行) {
+                                switch (当前服务器状态) {
+                                    case LOOKING:
+                                        // 领导者选举
+                                        setCurrentVote(makeLEStrategy().lookForLeader());
+                                        break;
+                                    case OBSERVING:
+                                        try {
+                                            // 初始化为观察者
+                                        } catch (Exception e) {
+                                            LOG.warn("Unexpected exception",e );
+                                        } finally {
+                                            observer.shutdown();
+                                            setPeerState(ServerState.LOOKING);
+                                        }
+                                        break;
+                                    case FOLLOWING:
+                                        try {
+                                            // 初始化为跟随者
+                                        } catch (Exception e) {
+                                            LOG.warn("Unexpected exception",e);
+                                        } finally {
+                                            follower.shutdown();
+                                            setPeerState(ServerState.LOOKING);
+                                        }
+                                        break;
+                                    case LEADING:
+                                        try {
+                                            // 初始化为领导者
+                                        } catch (Exception e) {
+                                            LOG.warn("Unexpected exception",e);
+                                        } finally {
+                                            leader.shutdown("Forcing shutdown");
+                                            setPeerState(ServerState.LOOKING);
+                                        }
+                                    break;
+                                }
+                            }
+                        根据伪代码可以看到，当服务器状态为LOOKING时会进行领导者选举，所以我们着重来看领导者选举。
+                        lookForLeader：当服务器状态为LOOKING时会调用FastLeaderElection类的lookForLeader方法，这就是领导者选举的应用层。
+                            1.初始化一个投票箱
+                                HashMap<Long, Vote> recvset = new HashMap<Long, Vote>();
+                            2.更新选票，将票投给自己
+                                updateProposal(getInitId(), getInitLastLoggedZxid(), getPeerEpoch());
+                            3.发送选票
+                                sendNotifications();
+                            4.不断获取其他服务器的投票信息，直到选出Leader
+                                while ((self.getPeerState() == ServerState.LOOKING) && (!stop)){
+                                    // 从recvqueue中获取接收到的投票信息
+                                    Notification n = recvqueue.poll(notTimeout, TimeUnit.MILLISECONDS);
+
+                                    if (获得的投票为空) {
+                                        // 连接其他服务器
+                                    } else {
+                                        // 处理投票
+                                    }
+                                }
+                            5.连接其他服务器
+                                因为在这一步之前，都只进行了服务器的初始化，并没有真正的去与其他服务器建立连接，所以在这里建立连接。
+                            6.处理投票
+                                判断接收到的投票所对应的服务器的状态，也就是投此票的服务器的状态：
+                                switch (n.state) {
+                                    case LOOKING:
+                                        // PK选票、过半机制验证等
+                                        break;
+                                    case OBSERVING:
+                                        // 观察者节点不应该发起投票，直接忽略
+                                        break;
+                                    case FOLLOWING:
+                                    case LEADING:
+                                        // 如果接收到跟随者或领导者节点的选票，则可以认为当前集群已经存在Leader了，直接return，退出lookForLeader方法。
+                                }
+                            7. PK选票
+                                if (接收到的投票的选举周期 > 本服务器当前的选举周期) {
+                                    // 修改本服务器的选举周期为接收到的投票的选举周期
+                                    // 清空本服务器的投票箱（表示选举周期落后，重新开始投票）
+                                    // 比较接收到的选票所选择的服务器与本服务器的数据谁更新，本服务器将选票投给数据较新者
+                                    // 发送选票
+                                } else if(接收到的投票的选举周期 < 本服务器当前的选举周期){
+                                    // 接收到的投票的选举周期落后了，本服务器直接忽略此投票
+                                } else if(选举周期一致) {
+                                    // 比较接收到的选票所选择的服务器与本服务器当前所选择的服务器的数据谁更新，本服务器将选票投给数据较新者
+                                    // 发送选票
+                                }
+                            8.过半机制验证
+                                本服务器的选票经过不停的PK会将票投给数据更新的服务器，PK完后，将接收到的选票以及本服务器自己所投的选票放入投票箱中，然后从投票箱中统计出与本服务器当前所投服务器一致的选票数量，
+                                判断该选票数量是否超过集群中所有跟随者的一半（选票数量 > 跟随者数量/2），如果满足这个过半机制就选出了一个准Leader。
+                            9.最终确认
+                                选出准Leader之后，再去获取其他服务器的选票，如果获取到的选票所代表的服务器的数据比准Leader更新，则准Leader卸职，继续选举。如果没有准Leader更新，则继续获取投票，
+                                直到没有获取到选票，则选出了最终的Leader。Leader确定后，其他服务器的角色也确定好了。
+                        领导选举完成后：
+                            主线程这段伪代码达到了一个非常重要的功能，就是：ZooKeeper集群在进行领导者选举的过程中不能对外提供服务。
+                            根据伪代码我们可以发现，只有当集群中服务器的角色确定了之后，while才会进行下一次循环，当进入下一次循环后，就会根据服务器的角色进入到对应的初始化逻辑，初始化完成之后才能对外提供服务。
+    d.Zookeeper分布式一致性协议ZAB：见pdf https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf3-b3a36433faa6/eigngv
+    e.Zookeeper集群同步数据原理：
+        Leader和Learner什么时候开始同步数据：
+            当服务器启动时，完成了领导者选举后，确定了服务器的角色后（比如Leader、Follower、Observer），会先统一Epoch，然后就开始数据同步，最后再构造RequestProcessor，处理客户端的请求。
+                1.Learner节点向Leader发送LearnerInfo数据(包含了acceptEpoch)，然后等待Leader响应
+                2.Leader不停的从Learner节点接收到发送过来的LearnerInfo数据，比较Epoch，超过过半机制后统一epoch
+                3.Leader同一Epoch后，向Learner节点，发送LEADERINFO数据（包含了新的epoch）,等待接收ACKEPOCH数据
+                4.Learner节点接收到LEADERINFO数据后，修改自己的epoch，然后发送ACKEPOCH数据给Leader
+                5.当Leader节点接收到了大部分的ACKEPOCH数据后，就开始同步数据，Learner节点阻塞等待Leader节点发送数据过来进行同步
+                6.Leader节点整理要同步的数据，把这些数据先会添加到queuedPackets队列中去，并且往队列中添加了一个NEWLEADER数据
+                7.Leader节点开启一个线程，从queuedPackets队列中获取数据进行同步
+                8.Learner节点接收数据进行同步，同步完之后，会接收到一个NEWLEADER数据，并返回给Leader一个ACK数据
+                9.Leader节点接收到了超过一半的ack后，则运行一个while，负责从Learner接收命令
+                10.Leader节点启动
+                11.Follower节点启动
+        Leader和Learner要同步哪些数据：
+            数据的同步的目的：Learner和Leader上的数据保持一致。那么就有可能：
+                1.Leader的数据比Learner新，这时Leader要把多出的数据发给Learner。
+                2.Learner的数据比Leader新，这时Learner要把多出的数据删除掉。
+            如何判断Learner和Leader上的数据新旧？根据zxid。
+            如何发送数据给Leader？日志？快照？
+            在Leader上，数据会保存在几个地方：
+                1.日志文件中（txnlog）：数据最新
+                2.快照中（snapshot）：数据新度有延迟
+                3.CommittedLog队列：保存的是Leader节点最近处理的请求（相当于日志，日志是持久化在文件中的，而CommittedLog是在内存中的）
+            当Learner节点向Leader节点发起同步数据请求时，Learner会把它目前最大的zxid发给Leader，Leader则会结合自身的信息来进行判断，需要告知Learner如何同步数据。
+                peerLastZxid：表示Learner上最大的zxid
+                lastProcessedZxid：表示Leader上最大的zxid
+                maxCommittedLog：表示CommittedLog队列中最大的CommittedLog
+                minCommittedLog：表示CommittedLog队列中最小的CommittedLog
+                1.forceSnapSync=true，表示开启了强制使用快照同步（Leader发送快照文件给Learner）
+                2.lastProcessedZxid == peerLastZxid，表示无需同步
+                3.peerLastZxid > maxCommittedLog，表示Learner的数据比Leader上多，需要回滚（TRUNC）
+                4.minCommittedLog <= peerLastZxid <= maxCommittedLog， 把CommittedLog队列中的（peerLastZxid , maxCommittedLog]的日志发送给Learner
+                5.peerLastZxid < minCommittedLog，把日志文件中的(peerLastZxid, minCommittedLog]的日志发送给leader，如果日志文件中的日志小于minCommittedLog，那么则认为日志文件少了（为什么了少了？），
+                  那么则不发日志了，因为日志少了（就算把日志发过去，数据页可能是不全的），所以进行快照同步。如果日志文件中的日志超过了minCommittedLog，那么则把日志中的(peerLastZxid, minCommittedLog]的日志发送过去，
+                  再加上CommittedLog队列中的(日志文件中的最大的zxid，maxCommittedLog]发送过去。
+                6.按照上面的规则，把数据发送给Learner后，还不够，还需要把Leader服务器上正在处理的请求也发送出去（toBeApplied和outstandingProposals队列中的请求），toBeApplied队列表示已经完成了两阶段提交的请求，
+                  但是还没有更新到DataTree中的请求，outstandingProposals队列表示发起了两阶段提交，暂时还没有进行第二阶段提交的请求。
+                7.如果需要发快照，则把DataTree序列化，然后发送给Learner（代码流程控制了，是先发送快照，再发送日志）
+
