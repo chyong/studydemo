@@ -1,0 +1,7 @@
+1.TCP三次握手和四次挥手：
+    https://mp.weixin.qq.com/s/rX3A_FA19n4pI9HicIEsXg
+2.http协议：
+    https://mp.weixin.qq.com/s/amOya0M00LwpL5kCS96Y6w
+    https://mp.weixin.qq.com/s/AK1Pb9rx0q5Hf8dq6HNOhw
+3.总结：
+    https://mp.weixin.qq.com/s/t7ZYT6wBBbFYVBPOSztpRg
