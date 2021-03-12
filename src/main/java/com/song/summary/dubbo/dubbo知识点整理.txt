@@ -1,1 +1,102 @@
-1.
+1.什么是RPC：
+    RPC，Remote Procedure Call即远程过程调用，远程过程调用其实对标的是本地过程调用。简单的说一台服务器内部的方法调用都可以称为本地过程调用，而远程过程调用实际上指的是一台服务器调用远程另一台服务器上的某个方法，
+    这就是远程过程调用。RPC对标的是本地过程调用，至于RPC要如何调用远程的方法可以走HTTP，也可以是基于TCP自定义协议。
+2.什么是Dubbo？
+    Dubbo是阿里巴巴2011年开源的一个基于Java的RPC框架，它实现了面向接口的代理RPC调用，并且可以配合ZooKeeper等组件实现服务注册和发现功能，并且拥有负载均衡、容错机制等。
+3.Dubbo基本原理：
+    基本流程：
+        服务提供者Provider启动然后向注册中心注册自己所能提供的服务。服务消费者Consumer启动向注册中心订阅自己所需的服务。然后注册中心将提供者元信息通知给Consumer，之后Consumer因为已经从注册中心获取提供者的地址，
+        因此可以通过负载均衡选择一个Provider直接调用。之后服务提供方元数据变更的话注册中心会把变更推送给服务消费者。服务提供者和消费者都会在内存中记录着调用的次数和时间，然后定时的发送统计数据到监控中心。
+        注意：
+            注册中心和监控中心是可选的，你可以不要监控，也不要注册中心，直接在配置文件里面写然后提供方和消费方直连。然后注册中心、提供方和消费方之间都是长连接，和监控方不是长连接，并且消费方是直接调用提供方，
+            不经过注册中心。就算注册中心和监控中心宕机了也不会影响到已经正常运行的提供者和消费者，因为消费者有本地缓存提供者的信息。
+4.Dubbo的可扩展机制SPI：
+	Dubbo依靠SPI机制实现了插件化功能，几乎将所有的功能组件做成基于SPI实现，并且默认提供了很多可以直接使用的扩展点，实现了面向功能进行拆分的对扩展开放的架构。
+	SPI(Service Provider Interface)，一种服务扩展机制，大致就是通过事先配置的方式找到使用时需要的具体实现类，比如Java SPI约定在Classpath下的META-INF/services/目录里创建一个以服务接口命名（接口的全限定名）的文件，
+	然后文件里面记录的是此jar包提供的具体实现类的全限定名。当我们引用了这个jar包的时候就可以去这个jar包的META-INF/services/目录下根据接口全限定名找到该文件，然后读取文件里面的内容去进行实现类的加载与实例化。
+	但Java SPI有个缺点，就是不能按需加载实现类，Java SPI默认会将配置文件里配置的所有实现类全部实例化，但有些类不是我们使用时需要的，这就造成了资源浪费。而Dubbo SPI解决了这一痛点，Dubbo SPI通过在配置文件里给每行配置
+	信息行首加一个名称（name），也就是键值对的配置形式，实现了按需加载的功能，即每次使用时通过名称去文件里面找到对应的实现类全限定名然后加载实例化。Dubbo SPI除了可以按需加载实现类之外，增加了IOC和AOP的特性，
+	还有个自适应扩展机制。Dubbo对配置文件目录的约定，不同于Java SPI，Dubbo分为了三类目录：
+		META-INF/services/ 目录：该目录下的SPI配置文件是为了用来兼容Java SPI。
+		META-INF/dubbo/ 目录：该目录存放用户自定义的SPI配置文件。
+		META-INF/dubbo/internal/ 目录：该目录存放Dubbo内部使用的SPI配置文件。
+    Dubbo SPI源码流程：
+    	Dubbo主要通过ExtensionLoader类实现SPI功能的，大致流程就是先通过接口类（ExtensionLoader.getExtensionLoader(Class.type)）得到一个ExtensionLoader实例，然后再通过ExtensionLoader.getExtension(name)
+    	得到指定名字的实现类实例。比如：
+    		ExtensionLoader<Person> extensionLoader = ExtensionLoader.getExtensionLoader(Person.class);
+        	Person person = extensionLoader.getExtension("black");
+        1.ExtensionLoader：
+        	ExtensionLoader表示某个接口的扩展点加载器，可以用来加载某个扩展点实例。在ExtensionLoader中有三个非常重要的属性：
+        		1.Class<?> type：表示当前ExtensionLoader实例是哪个接口的扩展点加载器
+        		2.ExtensionFactory objectFactory：扩展点工厂（对象工厂），可以获得某个对象
+        		3.ConcurrentMap<Class<?>, ExtensionLoader<?>> EXTENSION_LOADERS：被static修饰，缓存某个接口类型所对应的ExtensionLoader实例
+            ExtensionLoader和ExtensionFactory的区别在于：
+            	1.ExtensionLoader最终所得到的对象是Dubbo SPI机制产生的
+            	2.ExtensionFactory最终所得到的对象可能是Dubbo SPI机制所产生的，也可能是从Spring容器中所获得的对象
+            在ExtensionLoader中有三个常用的方法：
+            	1.getExtension("dubbo")：表示获取名字为dubbo的扩展点实例
+            	2.getAdaptiveExtension()：表示获取一个自适应的扩展点实例
+            	3.getActivateExtension(URL url, String[] values, String group)：表示一个可以被url激活的扩展点实例
+        2.getExtensionLoader(Class.type)：
+        	根据接口类型先尝试从缓存（EXTENSION_LOADERS）中获取一个ExtensionLoader实例，如果没有则通过ExtensionLoader类的构造方法创建一个，然后再将创建好的实例放入缓存。
+        3.getExtension(String name)：
+        	根据扩展点名称获取扩展点实例对象，先判断是否是默认扩展点（name="true"），如果是返回默认扩展点实例对象，如果不是则调用createExtension(name)方法获取扩展点实例对象，
+        	其中调用createExtension(name)方法前会进行双重检查（单例模式-synchronized）防止高并发情况下扩展点实例对象重复创建。
+        4.createExtension(String name)：
+        	该方法主要就是根据扩展点名称创建扩展点实例对象，创建前先尝试从缓存（EXTENSION_LOADERS）中获取，如果没有再执行实例化的逻辑，实例化完后存入缓存，主要步骤如下：
+        		1.根据name找到对应的扩展点实现类 getExtensionClasses()
+        		2.根据实现类生成一个实例，把实现类和对应生成的实例进行缓存
+        		3.对生成出来的实例进行依赖注入（给实例的属性进行赋值）injectExtension(instance)
+        		4.对依赖注入后的实例进行AOP（Wrapper），把当前接口类的所有的Wrapper全部一层一层包裹在实例对象上，每包裹一个Wrapper后，也会对Wrapper对象进行依赖注入
+        		5.返回最终的Wrapper对象
+        5.getExtensionClasses()：
+        	根据扩展点类型的全限定名加载扩展点所有的实现类并放到缓存里，下次可以直接从缓存取，主要调用loadExtensionClasses()，调用之前对缓存map加锁（synchronized）解决并发问题。
+        6.loadExtensionClasses()：
+        	1.根据接口的全限定名去META-INF/dubbo/internal/目录下寻找对应的文件，调用loadResource方法进行加载
+        	2.根据接口的全限定名去META-INF/dubbo/目录下寻找对应的文件，调用loadResource方法进行加载
+        	3.根据接口的全限定名去META-INF/services/目录下寻找对应的文件，调用loadResource方法进行加载
+        	其中loadResource方法在loadDirectory方法里，这里兼容了老版本的逻辑以及Java SPI，结果存到一个map中
+        7.loadResource(extensionClasses, classLoader, resourceURL)：
+        	loadResource方法就是完成对文件内容的解析，按行进行解析，会解析出"="两边的内容，"="左边的内容就是扩展点的name，右边的内容就是扩展点实现类，并且会利用ExtensionLoader类的类加载器来加载扩展点实现类。
+        	然后调用loadClass方法对name和扩展点实例进行详细的解析，并且最终把他们放到Map中去。
+        8.loadClass(extensionClasses, resourceURL, Class.forName(line, true, classLoader), name)：
+        	loadClass方法会做如下几件事情：
+	        	1.当前扩展点实现类上是否存在@Adaptive注解，如果存在则把该类认为是当前接口的默认自适应类（接口代理类），并把该类存到cachedAdaptiveClass属性上。
+	        	2.当前扩展点实现是否是一个当前接口的一个Wrapper类，如何判断的？就是看当前类中是否存在一个构造方法，该构造方法只有一个参数，参数类型为接口类型，如果存在这一构造方法，那么这个类就是该接口的Wrapper类，
+	        	如果是，则把该类添加到cachedWrapperClasses中去，cachedWrapperClasses是一个set。
+	        	3.如果不是自适应类，或者也不是Wrapper类，则判断是有存在name，如果没有name，则报错。
+	        	4.如果有多个name，则判断一下当前扩展点实现类上是否存在@Activate注解，如果存在，则把该类添加到cachedActivates中，cachedWrapperClasses是一个map。
+	        	5.最后，遍历多个name，把每个name和对应的实现类存到extensionClasses中去，extensionClasses就是上文所提到的map。
+            至此，加载类就走完了。
+        回到createExtension(String name)方法中的逻辑，当前这个接口的所有扩展点实现类都扫描完了之后，就可以根据用户所指定的名字，找到对应的实现类了，然后进行实例化，然后进行IOC(依赖注入)和AOP。
+    Dubbo中的自适应扩展：
+    	对于有些扩展，希望在扩展方法被调用时，才灵活地根据运行时参数进行加载对应的扩展点，Dubbo通过一个代理机制实现了自适应扩展，简单的说就是为你想扩展的接口生成一个代理类，可以通过JDK或者javassist 编译你生成的代理类代码，
+    	然后通过反射创建实例，这个实例里面的实现会根据本来方法的请求参数得知需要的扩展类，然后通过ExtensionLoader.getExtensionLoader(type.class).getExtension(从参数得来的name)，来获取真正的实例来调用，
+    	相当于在真正的实例方法外包了一层同名同参数的方法，然后在这个方法里通过请求参数（URL）找到真正的扩展点名称，最后通过getExtension(扩展点名称)实例化真正的扩展类对象并完成方法调用。
+    	createAdaptiveExtensionClass()：
+    		createAdaptiveExtensionClass方法就是Dubbo中默认生成Adaptive类实例的逻辑，说白了，这个实例就是当前这个接口的一个代理对象。代理逻辑就是在
+    		newAdaptiveClassCodeGenerator(type, cachedDefaultName).generate()方法中。
+    			1.type就是接口
+    			2.cacheDefaultName就是该接口默认的扩展点实现的名字
+        除了依赖注入时通过ExtensionFactory获取自适应扩展点的代理对象，在Dubbo中还设计另外一种机制来生成自适应扩展点，这种机制就是可以通过@Adaptive注解来指定某个类为某个接口的代理类，如果指定了，
+        Dubbo在生成自适应扩展点对象时实际上生成的就是@Adaptive注解所注解的类的实例对象，不是代理对象，一般@Adaptive注解指定的方法时才会生成代理对象，但该方法还要满足以下几个条件：
+        	1.该方法如果是无参的，那么则会报错
+        	2.该方法有参数，可以有多个，并且其中某个参数类型是URL，那么则可以进行代理
+        	3.该方法有参数，可以有多个，但是没有URL类型的参数，那么则不能进行代理
+        	4.该方法有参数，可以有多个，没有URL类型的参数，但是如果这些参数类型，对应的类中存在getUrl方法（返回值类型为URL），那么也可以进行代理
+    Dubbo中的IOC：
+    	injectExtension(T instance)方法
+    	1.根据当前实例的类，找到这个类中的setter方法，进行依赖注入
+    	2.先分析出setter方法的参数类型pt
+    	3.在截取出setter方法所对应的属性名property
+    	4.调用objectFactory.getExtension(pt, property)得到一个对象，这里就会从Spring容器或通过DubboSpi机制得到一个对象，比较特殊的是，如果是通过Dubbo SPI机制得到的对象，是pt这个类型的一个自适应对象(代理对象)。
+    	5.再反射调用setter方法进行注入
+    Dubbo中的AOP：
+    	dubbo中也实现了一套非常简单的AOP，就是利用Wrapper，如果一个接口的扩展点中包含了多个Wrapper类，那么在实例化完某个扩展点后，就会利用这些Wrapper类对这个实例进行包裹，比如：现在有一个DubboProtocol的实例，
+    	同时对于Protocol这个接口还有很多的Wrapper，比如ProtocolFilterWrapper、ProtocolListenerWrapper，那么，当对DubboProtocol的实例完成了IOC之后，就会先调用new ProtocolFilterWrapper(DubboProtocol实例)
+    	生成一个新的Protocol的实例，再对此实例进行IOC，完了之后，会再调用new ProtocolListenerWrapper(ProtocolFilterWrapper实例)生成一个新的Protocol的实例，然后进行IOC，从而完成DubboProtocol实例的AOP。
+
+
+
+
+
