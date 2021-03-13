@@ -20,7 +20,7 @@
 		META-INF/services/ 目录：该目录下的SPI配置文件是为了用来兼容Java SPI。
 		META-INF/dubbo/ 目录：该目录存放用户自定义的SPI配置文件。
 		META-INF/dubbo/internal/ 目录：该目录存放Dubbo内部使用的SPI配置文件。
-    Dubbo SPI源码流程：
+    a.Dubbo SPI源码流程：
     	Dubbo主要通过ExtensionLoader类实现SPI功能的，大致流程就是先通过接口类（ExtensionLoader.getExtensionLoader(Class.type)）得到一个ExtensionLoader实例，然后再通过ExtensionLoader.getExtension(name)
     	得到指定名字的实现类实例。比如：
     		ExtensionLoader<Person> extensionLoader = ExtensionLoader.getExtensionLoader(Person.class);
@@ -69,7 +69,7 @@
 	        	5.最后，遍历多个name，把每个name和对应的实现类存到extensionClasses中去，extensionClasses就是上文所提到的map。
             至此，加载类就走完了。
         回到createExtension(String name)方法中的逻辑，当前这个接口的所有扩展点实现类都扫描完了之后，就可以根据用户所指定的名字，找到对应的实现类了，然后进行实例化，然后进行IOC(依赖注入)和AOP。
-    Dubbo中的自适应扩展：
+    b.Dubbo中的自适应扩展：
     	对于有些扩展，希望在扩展方法被调用时，才灵活地根据运行时参数进行加载对应的扩展点，Dubbo通过一个代理机制实现了自适应扩展，简单的说就是为你想扩展的接口生成一个代理类，可以通过JDK或者javassist 编译你生成的代理类代码，
     	然后通过反射创建实例，这个实例里面的实现会根据本来方法的请求参数得知需要的扩展类，然后通过ExtensionLoader.getExtensionLoader(type.class).getExtension(从参数得来的name)，来获取真正的实例来调用，
     	相当于在真正的实例方法外包了一层同名同参数的方法，然后在这个方法里通过请求参数（URL）找到真正的扩展点名称，最后通过getExtension(扩展点名称)实例化真正的扩展类对象并完成方法调用。
@@ -84,19 +84,97 @@
         	2.该方法有参数，可以有多个，并且其中某个参数类型是URL，那么则可以进行代理
         	3.该方法有参数，可以有多个，但是没有URL类型的参数，那么则不能进行代理
         	4.该方法有参数，可以有多个，没有URL类型的参数，但是如果这些参数类型，对应的类中存在getUrl方法（返回值类型为URL），那么也可以进行代理
-    Dubbo中的IOC：
+    c.Dubbo中的IOC：
     	injectExtension(T instance)方法
     	1.根据当前实例的类，找到这个类中的setter方法，进行依赖注入
     	2.先分析出setter方法的参数类型pt
     	3.在截取出setter方法所对应的属性名property
     	4.调用objectFactory.getExtension(pt, property)得到一个对象，这里就会从Spring容器或通过DubboSpi机制得到一个对象，比较特殊的是，如果是通过Dubbo SPI机制得到的对象，是pt这个类型的一个自适应对象(代理对象)。
     	5.再反射调用setter方法进行注入
-    Dubbo中的AOP：
+    d.Dubbo中的AOP：
     	dubbo中也实现了一套非常简单的AOP，就是利用Wrapper，如果一个接口的扩展点中包含了多个Wrapper类，那么在实例化完某个扩展点后，就会利用这些Wrapper类对这个实例进行包裹，比如：现在有一个DubboProtocol的实例，
     	同时对于Protocol这个接口还有很多的Wrapper，比如ProtocolFilterWrapper、ProtocolListenerWrapper，那么，当对DubboProtocol的实例完成了IOC之后，就会先调用new ProtocolFilterWrapper(DubboProtocol实例)
     	生成一个新的Protocol的实例，再对此实例进行IOC，完了之后，会再调用new ProtocolListenerWrapper(ProtocolFilterWrapper实例)生成一个新的Protocol的实例，然后进行IOC，从而完成DubboProtocol实例的AOP。
-
-
+5.Dubbo服务导出：
+    服务导出前，Spring都会为要导出的实现类额外生成一个ServiceBean（无论是xml配置还是@service注解等配置），这个bean即为一个Dubbo服务，服务导出的入口方法为ServiceBean.export()，此方法会调用ServiceConfig.export()方法，
+    进行真正的服务导出。
+    a.URL：
+        URL指的是统一资源定位符，在网络上一般指代地址，本质上看其实就是一串包含特殊格式的字符串，标准格式如下：
+            protocol://username:password@host:port/path?key=value&key=value
+        Dubbo就是采用URL的方式来作为约定的参数类型，被称为公共契约，URL具体的参数如下：
+            protocol：指的是dubbo中的各种协议，如：dubbo、thrift、http
+            username/password：用户名/密码
+            host/port：主机/端口
+            path：接口的名称
+            parameters：参数键值对
+    b.服务导出思路：
+        服务导出要做的几件事情：
+            1.确定服务的参数
+                参数来源：
+                    a.@Service注解上或xml里所定义的参数，即ServiceConfig、ReferenceConfig等编程接口采集的配置，在Dubbo的源码中叫AbstractConfig
+                    b.dubbo.properties文件中配置的参数，即本地文件，Dubob的源码中叫做PropertiesConfiguration
+                    c.配置中心，即外部化配置，相当于一个远程的dubbo.properties文件，支持按应用进行配置，也可以按全局进行配置两种，在Dubbo的源码中AppExternalConfiguration表示应用配置，
+                      ExternalConfiguration表示全局配置。
+                    d.系统环境变量，可以在启动应用程序时，通过-D的方式来指定参数，在Dubbo的源码中叫SystemConfiguration
+                配置覆盖关系的优先级，从高到低如下：
+                    SystemConfiguration -> AppExternalConfiguration -> ExternalConfiguration -> AbstractConfig -> PropertiesConfiguration
+            2.确定服务支持的协议
+                确定服务所支持的协议，就是看用户配了多少个Protocol，可以从上述参数的四个来源中获取协议，结果可能是一个协议，也可能是多个协议。
+            3.构造服务最终的URL
+                确定好参数以及协议后，就可以组装服务的URL了，Dubbo中支持服务动态配置，即可以在服务导出后动态的去修改服务配置，也就是在把服务的URL注册到注册中心去之前先按照动态配置中所添加的配置重写一下URL，
+                最后得到的URL才是真正准确的服务提供者URL。
+            4.将服务URL注册到注册中心去
+                将URL注册到注册中心上去，如果用户配置了多个注册中心，要将服务URL注册到每个注册中心里去。
+            5.根据服务支持的不同协议，启动不同的Server，用来接收和处理请求
+                在服务URL中指定了协议，比如Http协议、Dubbo协议。根据不同的协议启动对应的Server，比如Http协议就启动Tomcat、Jetty，Dubbo协议就启动Netty，但不能只启动Server，还需要绑定一个RequestHandler，
+                用来处理请求。比如，Http协议对应的就是InternalHandler，Dubbo协议对应的就是ExchangeHandler。
+            6.因为Dubbo支持动态配置服务参数，所以服务导出时还需要绑定一个监听器Listener来监听服务的参数是否有修改，如果发现有修改，则需要重新进行导出
+    c.服务导出源码流程：
+        1.ServiceBean.export()方法是导出的入口方法，会执行ServiceConfig.export()方法完成服务导出，导出完了之后会发布一个Spring事件ServiceBeanExportedEvent
+        2.在ServiceConfig.export()方法中会先调用checkAndUpdateSubConfigs()，这个方法主要完成AbstractConfig的参数刷新(从配置中心获取参数等等)，AbstractConfig是指ApplicationConfig、ProtocolConfig、
+          ServiceConfig等等，刷新完后会检查stub、local、mock等参数是否配置正确
+        3.参数刷新和检查完成了之后，就会开始导出服务，如果配置了延迟导出，那么则按指定的时间利用ScheduledExecutorService来进行延迟导出
+        4.否则调用doExport()进行服务导出
+        5.继续调用doExportUrls()进行服务导出
+        6.首先通过loadRegistries()方法获得所配置的注册中心的URL，可能配了多个注册中心，那么当前所导出的服务需要注册到每个注册中心去，这里，注册中心的是以URL的方式来表示的，使用的是什么注册中心、
+          注册中心的地址和端口，给注册中心所配置的参数等等，都会存在在URL上，此URL以registry://开始
+        7.获得到注册中心的registryURLs之后，就会遍历当前服务所有的ProtocolConfig，调用doExportUrlsFor1Protocol(protocolConfig, registryURLs);方法把当前服务按每个协议每个注册中心分别进行导出
+        8.在doExportUrlsFor1Protocol()方法中，会先构造一个服务URL，包括
+            a.服务的协议dubbo://
+            b.服务的IP和PORT，如果指定了就取指定的，没有指定IP就获取服务器上网卡的IP，
+            c.以及服务的PATH，如果没有指定PATH参数，则取接口名
+            d.以及服务的参数，参数包括服务的参数，服务中某个方法的参数
+            e.最终得到的URL类似：dubbo://192.168.1.110:20880/com.tuling.DemoService?timeout=3000&&sayHello.loadbalance=random
+        9.得到服务的URL之后，会把服务URL作为一个参数添加到registryURL中去（registryURL.addParameterAndEncoded(EXPORT_KEY, url.toFullString())），然后把registryURL、服务的接口、
+          当前服务实现类ref生成一个Invoker代理对象，再把这个代理对象和当前ServiceConfig对象包装成一个DelegateProviderMetaDataInvoker对象，DelegateProviderMetaDataInvoker就表示了完整的一个服务
+        10.接下来就会使用Protocol去export导出服务了，导出之后将得到一个Exporter对象（该Exporter对象，可以理解为主要可以用来卸载（unexport）服务，什么时候会卸载服务？在优雅关闭Dubbo应用的时候）
+        11.接下来我们来详细看看Protocol是怎么导出服务的？
+            一旦调用protocol.export(wrapperInvoker)方法时，因为protocol是Protocol接口的一个Adaptive对象，所以此时会根据wrapperInvoker的genUrl方法得到一个url，根据此url的协议找到对应的扩展点，
+            此时扩展点就是RegistryProtocol，但是，因为Protocol接口有两个包装类，一个是ProtocolFilterWrapper、ProtocolListenerWrapper，所以实际上在调用export方法时，会经过这两个包装类的export方法，
+            但是在这两个包装类的export方法中都会Registry协议进行了判断，不会做过多处理，所以最终会直接调用到RegistryProtocol的export(Invoker<T> originInvoker)方法
+        12.在RegistryProtocol的export(Invoker<T> originInvoker)方法中，主要完成了以下几件事情：
+            a.生成监听器，监听动态配置中心此服务的参数数据的变化，一旦监听到变化，则重写服务URL，并且在服务导出时先重写一次服务URL
+            b.拿到重写之后的URL之后，调用doLocalExport()进行服务导出，在这个方法中就会调用DubboProtocol的export方法去导出服务了，导出成功后将得到一个ExporterChangeableWrapper
+                ⅰ.在DubboProtocol的export方法中主要要做的事情就是启动NettyServer，并且设置一系列的RequestHandler，以便在接收到请求时能依次被这些RequestHandler所处理
+            c.从originInvoker中获取注册中心的实现类，比如ZookeeperRegistry
+            d.将重写后的服务URL进行简化，把不用存到注册中心去的参数去除
+            e.把简化后的服务URL调用ZookeeperRegistry.registry()方法注册到注册中心去
+            f.最后将ExporterChangeableWrapper封装为DestroyableExporter对象返回，完成服务导出
+        Exporter架构：
+            一个服务导出成功后，会生成对应的Exporter：
+                1.DestroyableExporter：Exporter的最外层包装类，这个类的主要作用是可以用来unexporter对应的服务
+                2.ExporterChangeableWrapper：这个类主要负责在unexport对应服务之前，把服务URL从注册中心中移除，把该服务对应的动态配置监听器移除
+                3.ListenerExporterWrapper：这个类主要负责在unexport对应服务之后，把服务导出监听器移除
+                4.DubboExporter：这个类中保存了对应服务的Invoker对象，和当前服务的唯一标志，当NettyServer接收到请求后，会根据请求中的服务信息，找到服务对应的DubboExporter对象，
+                  然后从对象中得到Invoker对象
+        服务端Invoker架构：
+            1.ProtocolFilterWrapper$CallbackRegistrationInvoker：会去调用下层Invoker，下层Invoker执行完了之后，会遍历过滤器，查看是否有过滤器实现了ListenableFilter接口，如果有，
+              则回调对应的onResponse方法，比如TimeoutFilter，当调用完下层Invoker之后，就会计算服务的执行时间
+            2.ProtocolFilterWrapper$1：ProtocolFilterWrapper中的过滤器组成的Invoker，利用该Invoker，可以执行服务端的过滤器，执行完过滤器之后，调用下层Invoker
+            3.RegistryProtocol$InvokerDelegate：服务的的委托类，里面包含了DelegateProviderMetaDataInvoker对象和服务对应的providerUrl，执行时直接调用下层Invoker
+            4.DelegateProviderMetaDataInvoker：服务的的委托类，里面包含了AbstractProxyInvoker对象和ServiceConfig对象，执行时直接调用下层Invoker
+            5.AbstractProxyInvoker：服务接口的代理类，绑定了对应的实现类，执行时会利用反射调用服务实现类实例的具体方法，并得到结果
+6.Dubbo服务引入：
 
 
 
