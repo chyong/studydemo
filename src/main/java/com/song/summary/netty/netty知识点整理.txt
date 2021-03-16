@@ -3,7 +3,10 @@ Netty:
     a.阻塞io模型：一个线程处理一个请求，如果数据未到达线程会一直阻塞直到数据到达。比较费服务器资源（占用线程较多），适合连接数目小且固定的架构，但程序简单易理解。
     b.非阻塞io模型：一个线程处理一个请求，不需要等待数据到达，会立马返回数据到达结果，如果未到达会一直轮循（while循环方式）直到数据到达。while循环方式访问内核数据到达状态，不会释放cpu，cpu占用较高。
     c.多路复用io模型：一个线程管理多个socket（连接），该线程会一直轮循（内核进行非用户线程）每个socket是否有读写事件，如果有才会调用实际的io读写操作。适合连接数比较多的情况，响应体较大，会导致后续的事件迟迟得不到处理。
-（2）NIO：
+（2）BIO：
+    BIO是一个同步并阻塞的IO模型，传统的java.io包，它基于流模型实现，提供了我们最熟知的一些IO功能，比如File抽象、输入输出流等。交互方式是同步、阻塞的方式，也就是说，在读取输入流或者写入输出流时，在读、写动作完成之前，
+    线程会一直阻塞在那里，它们之间的调用是可靠的线性顺序。
+（3）NIO：
     a.同步非阻塞IO模型，三大核心部分-channel（管道）、buffer（缓冲区）、selector（多路复用器），channel提供文件、网络读取数据的渠道，数据读写数据必须经由缓冲区，channel要注册到selector上，一个selector可以注册多个channel，
       selector轮循检测注册在它上面的channel是否有读写事件发生，如果有则进行响应处理。
     b.从JDK1.5开始，nio采用epoll基于事件响应机制进行了优化，epoll（selector的底层实现）是操作系统函数（native方法）
@@ -12,7 +15,7 @@ Netty:
       socketChannel.register() //将socketChannel注册到selector上，底层先将fd（socketChannel）添加到内部集合中，然后调用epoll_ctl方法进行事件绑定
       selector.select() //阻塞等待需要处理的事件发生，底层调用epoll_wait方法阻塞等待事件发生，然后进行响应处理
     c.epoll函数：int epoll_create(int size);  int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);  int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout);
-（3）Netty线程模型：
+（4）Netty线程模型：
     a.netty抽象化出了两组线程池BossGroup和WorkerGroup，BossGroup专门负责接收客户端的连接，WorkerGroup专门负责网络的读写
     b.BossGroup和WorkerGroup类型都是NioEventLoopGroup
     c.NioEventLoopGroup相当于一个事件循环线程组，这个组中含有多个事件循环线程，每一个事件循环线程是NioEventLoop

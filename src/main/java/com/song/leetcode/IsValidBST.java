@@ -41,10 +41,10 @@ public class IsValidBST {
     }
 
     public static boolean isValidBST(TreeNode node, long lower, long upper) {
-        if (node == null) {
-            return true;
+        if(node == null){
+             return true;
         }
-        if (node.val <= lower || node.val >= upper) {
+        if(node.val >= upper || node.val <= lower){
             return false;
         }
         return isValidBST(node.left, lower, node.val) && isValidBST(node.right, node.val, upper);
