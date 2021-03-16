@@ -16,7 +16,16 @@ Netty:
       selector.select() //阻塞等待需要处理的事件发生，底层调用epoll_wait方法阻塞等待事件发生，然后进行响应处理
     c.epoll函数：int epoll_create(int size);  int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);  int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout);
 （4）Netty线程模型：
-    a.netty抽象化出了两组线程池BossGroup和WorkerGroup，BossGroup专门负责接收客户端的连接，WorkerGroup专门负责网络的读写
+    ServerBootstrap（服务端的启动类）：
+        EventLoopGroup bossGroup = new NioEventLoopGroup(1);
+        EventLoopGroup workerGroup = new NioEventLoopGroup();
+        ServerBootstrap bootstrap = new ServerBootstrap();
+        bootstrap.group(bossGroup, workerGroup) //设置两个线程组
+    Bootstrap（客户端的启动类）：
+        EventLoopGroup group = new NioEventLoopGroup();
+        Bootstrap bootstrap = new Bootstrap();
+        bootstrap.group(group) //设置线程组
+    a.netty服务端抽象化出了两组线程池BossGroup和WorkerGroup，BossGroup专门负责处理客户端的连接，WorkerGroup专门负责网络的读写
     b.BossGroup和WorkerGroup类型都是NioEventLoopGroup
     c.NioEventLoopGroup相当于一个事件循环线程组，这个组中含有多个事件循环线程，每一个事件循环线程是NioEventLoop
     d.每个NioEventLoop都有一个selector，用于监听注册在其上的socketChannel的网络通讯，NioEventLoop中维护了一个线程和任务队列，支持异步提交执行任务
@@ -26,26 +35,26 @@ Netty:
       3.处理任务队列的任务，即runAllTasks
     f.每个worker  NioEventLoop线程循环执行的步骤：
       1.轮询注册到自己selector上的所有NioSocketChannel的read，write事件
-      2.处理I/O事件，即read，write 事件，在对应NioSocketChannel处理业务
+      2.处理I/O事件，即read，write事件，在对应的NioSocketChannel中处理业务
       3.runAllTasks处理任务队列TaskQueue的任务，一些耗时的业务处理一般可以放入TaskQueue中慢慢处理，这样不影响数据在pipeline中的流动处理
     g.每个worker NIOEventLoop处理NioSocketChannel业务时，会使用 pipeline (管道)，管道中维护了很多ChannelHandler处理器用来处理channel中的数据
       一个Channel包含了一个ChannelPipeline，而ChannelPipeline中又维护了一个由ChannelHandlerContext组成的双向链表，并且每个ChannelHandlerContext中又关联着一个ChannelHandler
     h.ByteBuf：从结构上来说，ByteBuf由一串字节数组构成。数组中每个字节用来存放信息。ByteBuf提供了两个索引，一个用于读取数据，一个用于写入数据。这两个索引通过在字节数组中移动，来定位需要读或者写信息的位置。
               当从ByteBuf读取时，它的readerIndex（读索引）将会根据读取的字节数递增。同样，当写ByteBuf时，它的writerIndex也会根据写入的字节数进行递增。需要注意的是极限的情况是readerIndex刚好读到了writerIndex写入的地方。
               如果readerIndex超过了writerIndex的时候，Netty会抛出IndexOutOf-BoundsException异常。
-    i.netty编解码：当netty发送或者接受一个消息的时候，就将会发生一次数据转换。入站消息会被解码：从字节转换为另一种格式（比如java对象）；如果是出站消息，它会被编码成字节。当你通过Netty发送或者接受一个消息的时候，就将会发生一次数据转换。
-                 入站消息会被解码：从字节转换为另一种格式（比如java对象）；如果是出站消息，它会被编码成字节。
+    i.netty编解码：当你通过Netty发送或者接受一个消息的时候，就将会发生一次数据转换。入站消息会被解码：从字节转换为另一种格式（比如java对象）；如果是出站消息，它会被编码成字节。Netty提供了一系列实用的编码解码器，
+                  他们都实现了ChannelInboundHandler或者ChannelOutboundHandler接口。在这些类中，channelRead方法已经被重写了。以入站为例，对于每个从入站Channel读取的消息，这个方法会被调用。随后，它将调用由已知解码器
+                  所提供的decode()方法进行解码，并将已经解码的字节转发给ChannelPipeline中的下一个ChannelInboundHandler。Netty提供了很多编解码器，比如编解码字符串的StringEncoder和StringDecoder，
+                  编解码对象的ObjectEncoder和ObjectDecoder等。
     j.netty粘包拆包：TCP是一个流协议，就是没有界限的一长串二进制数据。TCP作为传输层协议并不不了解上层业务数据的具体含义，它会根据TCP缓冲区的实际情况进行数据包的划分，所以在业务上认为是一个完整的包，可能会被TCP拆分成多个包进行发送，也有
                   可能把多个小的包封装成一个大的数据包发送，这就是所谓的TCP粘包和拆包问题。面向流的通信是无消息保护边界的。
-                  解决方案
-                  1）消息定长度，传输的数据大小固定长度，例如每段的长度固定为100字节，如果不够空位补空格
-                  2）在数据包尾部添加特殊分隔符，比如下划线，中划线等，这种方法简单易行，但选择分隔符的时候一定要注意每条数据的内部一定不
-                  能出现分隔符。
-                  3）发送长度：发送每条数据的时候，将数据的长度一并发送，比如可以选择每条数据的前4位是数据的长度，应用层处理时可以根据长度
-                  来判断每条数据的开始和结束。
-                  netty提供了多个解码器，可以进行分包的操作，如下：
-                    LineBasedFrameDecoder（回车换行分包）
-                    DelimiterBasedFrameDecoder（特殊分隔符分包）
-                    FixedLengthFrameDecoder（固定长度报文来分包）
-    k.netty心跳检测机制：所谓心跳，即在TCP长连接中，客户端和服务器之间定期发送的一种特殊的数据包，通知对方自己还在线，以确保TCP连接的有效性。TCP 实际上自带的就有长连接选项，本身是也有心跳包机制，也就是TCP的选项：SO_KEEPALIVE。
+                  解决方案：
+                      1）消息定长度，传输的数据大小固定长度，例如每段的长度固定为100字节，如果不够空位补空格。
+                      2）在数据包尾部添加特殊分隔符，比如下划线，中划线等，这种方法简单易行，但选择分隔符的时候一定要注意每条数据的内部一定不能出现分隔符。
+                      3）发送长度：发送每条数据的时候，将数据的长度一并发送，比如可以选择每条数据的前4位是数据的长度，应用层处理时可以根据长度来判断每条数据的开始和结束。
+                      netty提供了多个解码器，可以进行分包的操作，如下：
+                          LineBasedFrameDecoder（回车换行分包）
+                          DelimiterBasedFrameDecoder（特殊分隔符分包）
+                          FixedLengthFrameDecoder（固定长度报文来分包）
+    k.netty心跳检测机制：所谓心跳，即在TCP长连接中，客户端和服务器之间定期发送的一种特殊的数据包，通知对方自己还在线，以确保TCP连接的有效性。TCP实际上自带的就有长连接选项，本身是也有心跳包机制，也就是TCP的选项：SO_KEEPALIVE。
                       但是，TCP协议层面的长连接灵活性不够。所以，一般情况下我们都是在应用层协议上实现自定义心跳机制的，也就是在netty层面通过编码实现。通过netty实现心跳机制的话，核心类是IdleStateHandler。

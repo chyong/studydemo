@@ -14,11 +14,11 @@ public class SearchBST {
         TreeNode node3 = new TreeNode(4);
         TreeNode node1 = new TreeNode(2, node2, node3);
         TreeNode root = new TreeNode(1, null, node1);
-        System.out.println(inorderTraversal(searchBST(root, 0)));
+        System.out.println(inorderTraversal(searchBST(root, 1)));
     }
 
     public static TreeNode searchBST(TreeNode root, int val) {
-        if(root == null) return null;
+        if (root == null) return null;
 //        Queue<TreeNode> queue = new LinkedList<>();
 //        queue.offer(root);
 //        while(!queue.isEmpty()){
@@ -39,13 +39,13 @@ public class SearchBST {
     }
 
     public static TreeNode findVal(TreeNode node, int val) {
-        if(node == null){
+        if (node == null) {
             return null;
         }
-        if(node.val==val){
+        if (node.val == val) {
             return node;
         }
-        if(node.val > val){
+        if (node.val > val) {
             return findVal(node.left, val);
         }
         return findVal(node.right, val);
