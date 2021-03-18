@@ -16,20 +16,24 @@ public class DeleteNode {
     }
 
     public static TreeNode deleteNode(TreeNode root, int key) {
-
-    }
-
-    public static void findVal(TreeNode node, int val) {
-        if (node == null) {
-            return;
+        if (root == null) return null;
+        if (root.val == key) {
+            if (root.left == null) return root.right;
+            if (root.right == null) return root.left;
+            TreeNode newRoot = root.left;
+            TreeNode cur = newRoot;
+            while (cur.right != null) {
+                cur = cur.right;
+            }
+            cur.right = root.right;
+            return newRoot;
         }
-        if (node.val == val) {
-            return;
+        if (root.val > key) {
+            root.left = deleteNode(root.left, key);
+        } else {
+            root.right = deleteNode(root.right, key);
         }
-        if (node.val > val) {
-            findVal(node.left, val);
-        }
-        findVal(node.right, val);
+        return root;
     }
 
     public static List<Integer> inorderTraversal(TreeNode root) {
