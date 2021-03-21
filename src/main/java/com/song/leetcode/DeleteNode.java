@@ -16,17 +16,40 @@ public class DeleteNode {
     }
 
     public static TreeNode deleteNode(TreeNode root, int key) {
+//        //找前驱节点替换自己
+//        if (root == null) return null;
+//        if (root.val == key) {
+//            if (root.left == null) return root.right;
+//            if (root.right == null) return root.left;
+//            TreeNode newRoot = root.left;
+//            TreeNode cur = newRoot;
+//            while (cur.right != null) {
+//                cur = cur.right;
+//            }
+//            cur.right = root.right;
+//            return newRoot;
+//        }
+//        if (root.val > key) {
+//            root.left = deleteNode(root.left, key);
+//        } else {
+//            root.right = deleteNode(root.right, key);
+//        }
+//        return root;
+        //找后继节点替换自己
         if (root == null) return null;
         if (root.val == key) {
             if (root.left == null) return root.right;
             if (root.right == null) return root.left;
-            TreeNode newRoot = root.left;
-            TreeNode cur = newRoot;
-            while (cur.right != null) {
-                cur = cur.right;
+            TreeNode newRoot = root.right;
+            TreeNode minNode = newRoot;
+            while (minNode.left != null) {
+                minNode = minNode.left;
             }
-            cur.right = root.right;
+            minNode.left = root.left;
             return newRoot;
+//            root.val = minNode.val;
+//            root.right = deleteMinNode(root.right);
+
         }
         if (root.val > key) {
             root.left = deleteNode(root.left, key);
@@ -35,6 +58,17 @@ public class DeleteNode {
         }
         return root;
     }
+
+    public static TreeNode deleteMinNode(TreeNode root) {
+        if (root.left == null) {
+            TreeNode pRight = root.right;
+            root.right = null;
+            return pRight;
+        }
+        root.left = deleteMinNode(root.left);
+        return root;
+    }
+
 
     public static List<Integer> inorderTraversal(TreeNode root) {
         List<Integer> list = new ArrayList<>();
