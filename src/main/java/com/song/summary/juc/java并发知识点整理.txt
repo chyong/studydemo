@@ -304,6 +304,15 @@
                 2.NonfairSync 非公平锁的实现这两个类都继承自Sync，也就是间接继承了AbstractQueuedSynchronized，所以这一个ReentrantLock同时具备公平与非公平特性。
                 上面主要涉及的设计模式：模板模式-子类根据需要做具体业务实现。
         AQS独占锁底层实现：
+            Node：
+                 static final Node SHARED = new Node(); //标识等待节点处于共享模式
+                 static final Node EXCLUSIVE = null; //标识等待节点处于独占模式
+                 static final int CANCELLED = 1; //由于超时或中断，节点已被取消
+                 static final int SIGNAL = -1; // 节点阻塞（park）必须在其前驱结点为 SIGNAL 的状态下才能进行，如果结点为 SIGNAL,则其释放锁或取消后，可以通过 unpark 唤醒下一个节点，
+                 static final int CONDITION = -2; //表示线程在等待条件变量（先获取锁，加入到条件等待队列，然后释放锁，等待条件变量满足条件；只有重新获取锁之后才能返回）
+                 static final int PROPAGATE = -3; //表示后续结点会传播唤醒的操作，共享模式下起作用
+                 //等待状态：对于condition节点，初始化为CONDITION；其它情况，默认为0，通过CAS操作原子更新
+                 volatile int waitStatus;
             state初始的时候为0，在多线程条件下，线程要执行临界区的代码，必须首先获取state，某个线程获取成功之后，通过CAS操作将state加1，其他线程再获取的话由于共享资源已被占用，所以会到FIFO等待队列去等待，
             等占有state的线程执行完临界区的代码释放资源(state减1)后，会唤醒FIFO队列中的下一个等待线程（head中的下一个结点）去获取state。
             state由于是多线程共享变量，所以必须定义成volatile，以保证state的可见性, 同时虽然volatile能保证可见性，但不能保证原子性，所以AQS提供了对state的原子操作方法（通过CAS操作），保证了线程安全。
