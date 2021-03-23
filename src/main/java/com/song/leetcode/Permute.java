@@ -31,9 +31,9 @@ public class Permute {
         if (tmp.size() == nums.length) {
             res.add(new ArrayList<>(tmp));
         } else {
-            for (int i = 0; i < nums.length; i++) {
-                if (!tmp.contains(nums[i])) {
-                    tmp.add(nums[i]);
+            for (int num : nums) {
+                if (!tmp.contains(num)) {
+                    tmp.add(num);
                     dfs(nums, tmp, res);
                     tmp.remove(tmp.size() - 1);
                 }
