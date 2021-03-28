@@ -1,7 +1,7 @@
 package com.song.leetcode;
 
 /**
- * 67.二进制求和
+ * 67.二进制求和67.二进制求和
  */
 public class AddBinary {
     public static void main(String[] args) {
