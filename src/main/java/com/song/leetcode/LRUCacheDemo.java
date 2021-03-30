@@ -21,7 +21,7 @@ public class LRUCacheDemo {
 }
 
 
-class LRUCache{
+class LRUCache {
 
     static class DoubleLinkedNode {
         public int key;
@@ -31,7 +31,7 @@ class LRUCache{
 
         @Override
         public String toString() {
-            return  "{key=" + key +
+            return "{key=" + key +
                     ", value=" + value + '}';
         }
     }
@@ -43,14 +43,14 @@ class LRUCache{
         head.next = node;
     }
 
-    private void removeNode(DoubleLinkedNode node){
+    private void removeNode(DoubleLinkedNode node) {
         DoubleLinkedNode prev = node.prev;
         DoubleLinkedNode next = node.next;
         prev.next = next;
         next.prev = prev;
     }
 
-    private void moveToHead(DoubleLinkedNode node){
+    private void moveToHead(DoubleLinkedNode node) {
         removeNode(node);
         addNode(node);
     }
@@ -90,14 +90,14 @@ class LRUCache{
 
     public void put(int key, int value) {
         DoubleLinkedNode node = cache.get(key);
-        if(node == null) {
+        if (node == null) {
             DoubleLinkedNode newNode = new DoubleLinkedNode();
             newNode.key = key;
             newNode.value = value;
             cache.put(key, newNode);
             addNode(newNode);
             ++size;
-            if(size > capacity) {
+            if (size > capacity) {
                 DoubleLinkedNode tail = popTail();
                 cache.remove(tail.key);
                 --size;
