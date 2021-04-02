@@ -83,6 +83,7 @@ class LRUCache {
     public int get(int key) {
         DoubleLinkedNode node = cache.get(key);
         if (node == null) return -1;
+        //将节点移到链表头部
         moveToHead(node);
         System.out.println(cache);
         return node.value;
@@ -91,18 +92,21 @@ class LRUCache {
     public void put(int key, int value) {
         DoubleLinkedNode node = cache.get(key);
         if (node == null) {
+            //不存在则新增节点
             DoubleLinkedNode newNode = new DoubleLinkedNode();
             newNode.key = key;
             newNode.value = value;
             cache.put(key, newNode);
             addNode(newNode);
-            ++size;
+            size++;
             if (size > capacity) {
+                //如果缓存满了，则删除最后一个节点
                 DoubleLinkedNode tail = popTail();
                 cache.remove(tail.key);
-                --size;
+                size--;
             }
         } else {
+            //存在则更新节点
             node.value = value;
             moveToHead(node);
         }
