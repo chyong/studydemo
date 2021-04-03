@@ -24,6 +24,7 @@ public class LRUCacheDemo {
 class LRUCache {
 
     static class DoubleLinkedNode {
+        //双向链表
         public int key;
         public int value;
         public DoubleLinkedNode next;
@@ -37,25 +38,28 @@ class LRUCache {
     }
 
     private void addNode(DoubleLinkedNode node) {
-        node.prev = head;
+        //头插法
         node.next = head.next;
+        node.prev = head;
         head.next.prev = node;
         head.next = node;
     }
 
     private void removeNode(DoubleLinkedNode node) {
-        DoubleLinkedNode prev = node.prev;
         DoubleLinkedNode next = node.next;
-        prev.next = next;
+        DoubleLinkedNode prev = node.prev;
         next.prev = prev;
+        prev.next = next;
     }
 
     private void moveToHead(DoubleLinkedNode node) {
+        //将节点移动到首位
         removeNode(node);
         addNode(node);
     }
 
     private DoubleLinkedNode popTail() {
+        //将末尾节点删除，并返回删除的节点
         DoubleLinkedNode res = tail.prev;
         removeNode(res);
         return res;
@@ -74,43 +78,47 @@ class LRUCache {
     public LRUCache(int capacity) {
         this.size = 0;
         this.capacity = capacity;
-        head = new DoubleLinkedNode();
-        tail = new DoubleLinkedNode();
+        this.head = new DoubleLinkedNode();
+        this.tail = new DoubleLinkedNode();
         head.next = tail;
         tail.prev = head;
     }
 
     public int get(int key) {
         DoubleLinkedNode node = cache.get(key);
-        if (node == null) return -1;
-        //将节点移到链表头部
-        moveToHead(node);
-        System.out.println(cache);
-        return node.value;
+        if (node == null) {
+            System.out.println(cache);
+            return -1;
+        } else {
+            //返回value，并将该节点移至首位
+            moveToHead(node);
+            System.out.println(cache);
+            return node.value;
+        }
     }
 
     public void put(int key, int value) {
         DoubleLinkedNode node = cache.get(key);
         if (node == null) {
-            //不存在则新增节点
+            //不存在key与之相等的，新增节点
             DoubleLinkedNode newNode = new DoubleLinkedNode();
             newNode.key = key;
             newNode.value = value;
-            cache.put(key, newNode);
             addNode(newNode);
+            cache.put(key, newNode);
             size++;
+            //判断size是否大于capacity，如果大于，删除尾节点
             if (size > capacity) {
-                //如果缓存满了，则删除最后一个节点
-                DoubleLinkedNode tail = popTail();
-                cache.remove(tail.key);
+                DoubleLinkedNode delNode = popTail();
+                cache.remove(delNode.key);
                 size--;
             }
         } else {
-            //存在则更新节点
+            //存在key与之相等的，覆盖节点，并将该节点移至首位
             node.value = value;
             moveToHead(node);
+            cache.put(key, node);
         }
         System.out.println(cache);
     }
-
 }
