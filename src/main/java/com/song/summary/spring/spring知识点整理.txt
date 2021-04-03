@@ -11,7 +11,7 @@ spring常见面试题：https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf
         8.调用BeanPostProcessor的初始化后的方法，在这里会进行AOP。
         9.如果当前创建的bean是单例的则会把bean放入单例池。
         10.使用bean。
-        11.Spring容器关闭时调用DisposableBean中destory()方法。
+        11.Spring容器关闭时调用DisposableBean中destroy()方法。
     详解：
         a.Bean生成的过程：
             1.生成BeanDefinition：
@@ -27,7 +27,7 @@ spring常见面试题：https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf
                 在AbstractAutowireCapableBeanFactory类的createBean()方法中，一开始就会调用 Class<?> resolvedClass = resolveBeanClass(mbd, beanName);
                 去加载类，其中doResolveBeanClass方法会判断beanClass属性的类型是不是Class对象，如果是，那么就直接返回，如果不是，则会根据类名进行加载。
                 会利用BeanFactory所设置的类加载器来加载类，如果没有设置，则默认使用ClassUtils.getDefaultClassLoader()所返回的类加载器来加载。
-                ClassUtils.getDefaultClas  sLoader()：
+                ClassUtils.getDefaultClassLoader()：
                     a.优先获取当前线程中的ClassLoader。
                     b.如果为空，则获取加载ClassUtils类的类加载器（正常情况下，就是AppClassLoader，但是如果是在Tomcat中运行，那么则会是Tomcat中为每个应用所创建的WebappClassLoader）。
                     c.如果还是为空，那么则是bootstrap类加载器加载的ClassUtils类，那则获取系统类加载器进行加载。
@@ -250,3 +250,24 @@ spring常见面试题：https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf
     b.再扫描，扫描到的类都会生成对应的BeanDefinition，并且同时这些类也是ConfigurationClass。
     c.再解析ConfigurationClass的其他信息，比如@ImportResource注解的处理，@Import注解的处理，@Bean注解的处理。
     https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf3-b3a36433faa6/ridvn4
+8.spring MVC工作原理：
+    （1）客户端（浏览器）发送请求，直接请求到DispatcherServlet。
+    （2）DispatcherServlet根据请求信息调用HandlerMapping，解析请求对应的Handler。
+    （3）解析到对应的Handler后，开始由HandlerAdapter适配器处理。
+    （4）HandlerAdapter会根据Handler来调用真正的处理器开处理请求，并处理相应的业务逻辑。
+    （5）处理器处理完业务后，会返回一个ModelAndView对象，Model是返回的数据对象，View是个逻辑上的View。
+    （6）ViewResolver会根据逻辑View查找实际的View。
+    （7）DispatcherServlet把返回的Model传给View。
+    （8）通过View返回给请求者（浏览器）
+9.springBoot自动装配原理
+    https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf3-b3a36433faa6/dg164e
+10.springBoot启动流程
+    在启动类里通过SpringApplication.run方法：
+        1：获取并启动监听器
+        2：构造容器环境
+        3：初始化容器，创建容器（调用createApplicationContext()方法）
+        4：报告错误信息
+        5：刷新应用上下文前的准备阶段
+        6：刷新容器（调用applicationContext中的方法refresh方法，后续同spring启动流程）
+        7：刷新容器后的扩展接口
+    返回ConfigurableApplicationContext对象
