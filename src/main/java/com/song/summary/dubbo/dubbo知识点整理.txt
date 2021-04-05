@@ -70,7 +70,7 @@
             至此，加载类就走完了。
         回到createExtension(String name)方法中的逻辑，当前这个接口的所有扩展点实现类都扫描完了之后，就可以根据用户所指定的名字，找到对应的实现类了，然后进行实例化，然后进行IOC(依赖注入)和AOP。
     b.Dubbo中的自适应扩展：
-    	对于有些扩展，希望在扩展方法被调用时，才灵活地根据运行时参数进行加载对应的扩展点，Dubbo通过一个代理机制实现了自适应扩展，简单的说就是为你想扩展的接口生成一个代理类，可以通过JDK或者javassist 编译你生成的代理类代码，
+    	对于有些扩展，希望在扩展方法被调用时，才灵活地根据运行时参数进行加载对应的扩展点，Dubbo通过一个代理机制实现了自适应扩展，简单的说就是为你想扩展的接口生成一个代理类，可以通过JDK或者javassist编译你生成的代理类代码，
     	然后通过反射创建实例，这个实例里面的实现会根据本来方法的请求参数得知需要的扩展类，然后通过ExtensionLoader.getExtensionLoader(type.class).getExtension(从参数得来的name)，来获取真正的实例来调用，
     	相当于在真正的实例方法外包了一层同名同参数的方法，然后在这个方法里通过请求参数（URL）找到真正的扩展点名称，最后通过getExtension(扩展点名称)实例化真正的扩展类对象并完成方法调用。
     	createAdaptiveExtensionClass()：
@@ -247,7 +247,7 @@
     客户端调用接口的某个方法，实际调用的是该接口的代理类，代理类会通过cluster从directory中获取invokers，然后进行router的过滤（其中看配置也会添加mockInvoker用于服务降级），
     然后再通过SPI得到loadBalance（负载均衡）再对invokers进行一次过滤。最终得到要调用的远程服务对应的invoker，此时根据具体的协议构造请求头，然后将参数根据具体的序列化协议序列化之后构造塞入请求体中，
     再通过NettyClient发起远程调用。服务端NettyServer收到请求之后，根据协议得到信息并且反序列化成对象，再按照派发策略派发消息，默认是All，扔给业务线程池。业务线程会根据消息类型判断然后得到serviceKey
-    从之前服务暴露生成的exporterMap中得到对应的Invoker，然后调用invoker.invoke()（AbstractProxyInvoker）方法通过反射调用真实的实现类。最终将结果返回，因为请求和响应都有一个统一的ID，
+    从之前服务导出生成的exporterMap中得到对应的Invoker，然后调用invoker.invoke()（AbstractProxyInvoker）方法通过反射调用真实的实现类。最终将结果返回，因为请求和响应都有一个统一的ID，
     客户端根据响应的ID找到存储起来的Future，然后将返回结果塞入响应（Response）再唤醒等待future的线程，完成一次远程调用全过程。
     a.服务消费端执行逻辑：
         1.MockClusterInvoker.invoke(new RpcInvocation(method, args))：Mock逻辑
