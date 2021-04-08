@@ -120,8 +120,8 @@ spring常见面试题：https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf
                     4.writeMethodRef：表示set方法的Method对象的引用
                     5.writeMethodName：表示set方法的名字
                     6.propertyTypeRef：如果有get方法那么对应的就是返回值的类型，如果是set方法那么对应的就是set方法中唯一参数的类型
-                get方法的定义是： 方法参数个数为0个，并且 （方法名字以"get"开头 或者 方法名字以"is"开头并且方法的返回类型为boolean）
-                set方法的定义是：方法参数个数为1个，并且 （方法名字以"set"开头并且方法返回类型为void）
+                get方法的定义是：方法参数个数为0个，并且（方法名字以"get"开头或者方法名字以"is"开头并且方法的返回类型为boolean）
+                set方法的定义是：方法参数个数为1个，并且（方法名字以"set"开头并且方法返回类型为void）
                 所以，Spring在通过byName的自动填充属性时流程是：
                     1.找到所有set方法所对应的XXX部分的名字
                     2.根据XXX部分的名字去获取bean
