@@ -281,3 +281,6 @@ spring常见面试题：https://www.yuque.com/books/share/9f4576fb-9aa9-4965-abf
         6：刷新容器（调用applicationContext中的方法refresh方法，后续同spring启动流程）
         7：刷新容器后的扩展接口
     返回ConfigurableApplicationContext对象
+    Springboot的启动，主要创建了配置环境(environment)、事件监听(listeners)、应用上下文(applicationContext)，并基于以上条件，在容器中开始实例化我们需要的Bean。
+    https://www.cnblogs.com/trgl/p/7353782.html
+    springMVC启动流程：https://www.cnblogs.com/RunForLove/p/5688731.html
