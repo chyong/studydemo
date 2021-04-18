@@ -2,7 +2,7 @@ package com.song.sort;
 
 import java.util.Arrays;
 
-public class InsertSort {
+public class    InsertSort {
     public static void main(String[] args) {
 //      int[] array = {101, 34, 119, 1, -1, 90, 123};
         //创建80000个随机数的数组

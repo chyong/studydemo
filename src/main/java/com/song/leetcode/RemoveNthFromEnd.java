@@ -15,18 +15,31 @@ public class RemoveNthFromEnd {
     }
 
     public static ListNode removeNthFromEnd(ListNode head, int n) {
-        int index = getLength(head) - n;
-        if (index == -1) return head.next;
-        ListNode cur = head;
-        while (cur.next != null) {
-            index--;
-            if (index == -1) {
-                cur.next = cur.next.next;
-                break;
-            }
-            cur = cur.next;
+//        int index = getLength(head) - n;
+//        if (index == -1) return head.next;
+//        ListNode cur = head;
+//        while (cur.next != null) {
+//            index--;
+//            if (index == -1) {
+//                cur.next = cur.next.next;
+//                break;
+//            }
+//            cur = cur.next;
+//        }
+//        return head;
+        //快慢指针
+        ListNode dummy = new ListNode(0, head);
+        ListNode first = head;
+        ListNode second = dummy;
+        for (int i = 0; i < n; i++) {
+            first = first.next;
         }
-        return head;
+        while (first != null) {
+            first = first.next;
+            second = second.next;
+        }
+        second.next = second.next.next;
+        return dummy.next;
     }
 
     public static int getLength(ListNode head) {

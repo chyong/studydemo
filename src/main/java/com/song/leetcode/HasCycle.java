@@ -33,13 +33,13 @@ public class HasCycle {
         }
         ListNode slow = head;
         ListNode fast = head.next;
-        while (slow != fast) {
-            if (fast == null || fast.next == null) {
-                return false;
+        while (slow != null && fast != null && fast.next != null) {
+            if (fast == slow) {
+                return true;
             }
             slow = slow.next;
             fast = fast.next.next;
         }
-        return true;
+        return false;
     }
 }

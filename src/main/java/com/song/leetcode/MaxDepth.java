@@ -19,7 +19,7 @@ public class MaxDepth {
 
     public static int maxDepth(TreeNode root) {
         if (root == null) return 0;
-        return Math.max(maxDepth(root.left), maxDepth(root.right)) + 1;
+//        return Math.max(maxDepth(root.left), maxDepth(root.right)) + 1;
 
 //        Stack<TreeNode> stack = new Stack<>();
 //        Stack<Integer> depthStack = new Stack<>();
@@ -41,22 +41,22 @@ public class MaxDepth {
 //        }
 //        return depth;
 
-//        int res = 0;
-//        List<TreeNode> nodes = new ArrayList<>();
-//        nodes.add(root);
-//        while (!nodes.isEmpty()) {
-//            int size = nodes.size();
-//            for (int i = 0; i < size; i++) {
-//                TreeNode remove = nodes.remove(0);
-//                if (remove.left != null) {
-//                    nodes.add(remove.left);
-//                }
-//                if (remove.right != null) {
-//                    nodes.add(remove.right);
-//                }
-//            }
-//            res++;
-//        }
-//        return res;
+        int res = 0;
+        List<TreeNode> nodes = new ArrayList<>();
+        nodes.add(root);
+        while (!nodes.isEmpty()) {
+            int size = nodes.size();
+            for (int i = 0; i < size; i++) {
+                TreeNode remove = nodes.remove(0);
+                if (remove.left != null) {
+                    nodes.add(remove.left);
+                }
+                if (remove.right != null) {
+                    nodes.add(remove.right);
+                }
+            }
+            res++;
+        }
+        return res;
     }
 }

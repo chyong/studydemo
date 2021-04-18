@@ -5,7 +5,7 @@ package com.song.leetcode;
  */
 public class MaxSubArray {
     public static void main(String[] args) {
-        System.out.println(maxSubArray(new int[]{1,2}));
+        System.out.println(maxSubArray(new int[]{1, 2}));
     }
 
     //滑动窗口法，时间复杂度不满足题目要求
@@ -62,15 +62,26 @@ public class MaxSubArray {
      * @return
      */
     public static int maxSubArray(int[] nums) {
+//        int res = nums[0];
+//        int sum = 0;
+//        for (int num : nums) {
+//            if (sum > 0) {
+//                sum = sum + num;
+//            } else {
+//                sum = num;
+//            }
+//            res = Math.max(res, sum);
+//        }
+//        return res;
+        if (nums.length < 1) {
+            return 0;
+        }
         int res = nums[0];
-        int sum = 0;
-        for (int num : nums) {
-            if (sum > 0) {
-                sum = sum + num;
-            } else {
-                sum = num;
-            }
-            res = Math.max(res, sum);
+        int[] dp = new int[nums.length];
+        dp[0] = nums[0];
+        for (int i = 1; i < nums.length; i++) {
+            dp[i] = Math.max(dp[i - 1] + nums[i], nums[i]);
+            res = Math.max(res, dp[i]);
         }
         return res;
     }
