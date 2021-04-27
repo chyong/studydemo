@@ -9,7 +9,7 @@ import java.util.List;
  */
 public class SearchRange {
     public static void main(String[] args) {
-        System.out.println(Arrays.toString(searchRange(new int[]{7, 8, 8, 8, 9}, 2)));
+        System.out.println(Arrays.toString(searchRange(new int[]{7, 8, 8, 8, 9}, 8)));
     }
 
     public static int[] searchRange(int[] nums, int target) {

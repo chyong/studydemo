@@ -5,7 +5,7 @@ package com.song.leetcode;
  */
 public class MaxProfit {
     public static void main(String[] args) {
-        System.out.println(maxProfit(new int[]{7, 1, 5, 3, 6, 4}));
+        System.out.println(maxProfit(new int[]{7, 1, 5, 3, 4, 6}));
     }
 
 //    public static int maxProfit(int[] prices) {

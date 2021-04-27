@@ -31,14 +31,14 @@ public class HasCycle {
         if (head == null || head.next == null) {
             return false;
         }
-        ListNode slow = head;
         ListNode fast = head.next;
+        ListNode slow = head;
         while (slow != null && fast != null && fast.next != null) {
             if (fast == slow) {
                 return true;
             }
-            slow = slow.next;
             fast = fast.next.next;
+            slow = slow.next;
         }
         return false;
     }

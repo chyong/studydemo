@@ -8,7 +8,7 @@ import java.util.Arrays;
 public class RemoveDuplicates {
 
     public static void main(String[] args) {
-        System.out.println(removeDuplicates(new int[]{1}));
+        System.out.println(removeDuplicates(new int[]{1,1,3,5,5,6}));
     }
 
     public static int removeDuplicates(int[] nums) {

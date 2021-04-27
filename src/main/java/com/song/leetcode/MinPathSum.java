@@ -11,8 +11,8 @@ public class MinPathSum {
         int[][] grid = new int[4][1];
         Stack<Integer> stack = new Stack<>();
 //        stack.addAll(Arrays.asList(1, 2, 4, 1, 5, 1, 1, 3, 1));
-//        stack.addAll(Arrays.asList(6, 5, 4, 3, 2, 1));
-        stack.addAll(Arrays.asList(8, 4, 1, 9));
+        stack.addAll(Arrays.asList(6, 5, 4, 3, 2, 1));
+//        stack.addAll(Arrays.asList(8, 4, 1, 9));
         for (int i = 0; i < grid.length; i++) {
             for (int i1 = 0; i1 < grid[0].length; i1++) {
                 grid[i][i1] = stack.pop();
